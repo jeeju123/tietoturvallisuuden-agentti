@@ -1,0 +1,71 @@
+//  Example ./vscode/settings.json 
+{
+  /*
+    OS-level sandboxing for terminal command. Currently, only available on MacOS and Linux (and WSL2).
+    Note: when sandboxing is enabled, terminal commands are always auto-approved.
+   */
+  "chat.agent.sandbox.enabled": "on",
+
+  // Adjust sandbox network access.
+  "chat.agent.sandbox.allowNetwork": false,
+
+  // Sandboxed agent will prompt for command re-run with unrestricted network access if it is denied, if set to true.
+  "chat.agent.sandbox.retryWithAllowNetworkRequests": false,
+
+  // Sandbox can try to prompt for unsandboxed commands if it is denied, if set to true.
+  "chat.agent.sandbox.allowUnsandboxedCommands": false,
+
+  // Change to "mac" if MacOS. Adjust sandbox file system access.
+  "chat.agent.sandbox.fileSystem.linux": {
+    "denyWrite": [
+      "${workspaceFolder}/.github/skills",
+      "${workspaceFolder}/.github/agents",
+      "${workspaceFolder}/.github/references",
+      "${workspaceFolder}/.github/prompts",
+      "${workspaceFolder}/.github/copilot-instructions.md",
+      "${workspaceFolder}/.vscode",
+      "${workspaceFolder}/.env"
+    ],
+    "denyRead": ["${workspaceFolder}/.env"],
+    "allowRead": ["${workspaceFolder}/.env.example"]
+  },
+
+  // Adjust agent network access. If both lists are empty, no access is allowed.
+  "chat.agent.networkFilter": true,
+  "chat.agent.allowedNetworkDomains": [
+      "<domain>"
+  ],
+  "chat.agent.deniedNetworkDomains": [
+      "<domain>"
+  ],
+
+  // Explicitly adjust auto-approval for specific files.
+  "chat.tools.edits.autoApprove": {
+    "**/.env": false,
+    "**/.env.*": false,
+    "**/.github/skills/**": false,
+    "**/.github/agents/**": false,
+    "**/.github/references/**": false,
+    "**/.github/prompts/**": false,
+    "**/.github/copilot-instructions.md": false,
+  },
+
+  // Explicitly adjust auto-approval for specific terminal commands.
+  "chat.tools.terminal.autoApprove": {
+    "mkdir": true,
+    "rm": false,
+    "rmdir": false,
+    "curl": false,
+    "wget": false
+  },
+
+  // Explicitly adjust auto-approval for specific URLs.
+  "chat.tools.urls.autoApprove": {
+    "https://www.example.com": false,
+    "https://example.com/api/*": {
+        "approveRequest": true,
+        "approveResponse": false
+    }
+  },
+
+}

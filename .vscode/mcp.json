@@ -1,0 +1,34 @@
+//  Example .vscode/mcp.json
+{
+  "servers": {
+    "myServer": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@example/mcp-server"],
+      "sandboxEnabled": true
+    },
+    "github": {
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer <ACCESS_TOKEN>"
+      },
+      "oauth": {
+        "clientId": "<CLIENT_ID>",
+        "enterpriseManaged": false
+      },
+      "url": "https://api.githubcopilot.com/mcp"
+    },
+  },
+  "sandbox": {
+    "filesystem": {
+      "allowWrite": ["${workspaceFolder}"],
+      "denyRead": [""],
+      "denyWrite": [""],
+    },
+    "network": {
+      "allowedDomains": ["api.example.com"],
+      "deniedDomains": [""]
+    }
+  }
+}
+
