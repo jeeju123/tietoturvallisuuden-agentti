@@ -1,0 +1,40 @@
+phases:
+  - id: spec
+  - command: /spec
+  - produces:
+    - artefact: artefacts/spec.md
+  
+  - id: design
+  - command: /design
+  - requires:
+    - artefact: artefacts/spec.md
+  - produces:
+    - artefact: artefacts/design.md 
+  
+  - id: implement
+  - command: /implement
+  - requires:
+    - artefact: artefacts/spec.md
+  - produces:
+    - artefact: artefacts/implement.md
+  
+  - id: test
+  - command: /test
+  - requires:
+    - artefact: artefacts/spec.md
+  - produces:
+    - artefact: artefacts/test.md
+
+  - id: maintain
+  - command: /maintain
+  - requires:
+    - artefact: artefacts/spec.md
+  - produces:
+    - artefact: artefacts/maintain.md
+
+  - id: deploy
+  - command: /deploy
+  - requires:
+    - artefact: artefacts/spec.md
+  - produces:
+    - artefact: artefacts/deploy.md
