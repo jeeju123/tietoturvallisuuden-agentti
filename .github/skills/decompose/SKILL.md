@@ -16,7 +16,7 @@ Architecturally decompose unknown ("black-box") software to understand its inner
 - Only static content
 
 ## Data Flow Diagram (DFD) and Trust boundaries
-Collect architectural information. Create `decomposition-results.json` file in `artefacts/` folder and fill it with `OWASP Threat Dragon` schema formatted DFD + trust boundaries  
+Collect architectural information. Create `decomposition-results.json` file in `artefacts/` folder and fill it with `OWASP Threat Dragon` schema formatted DFD + trust boundaries. **Use** the `v2.x schema` (**use** `schema.json` as reference).
 
 ### Step 1. Collect initial information
 Start by understanding the system architecture and load it to context
@@ -48,7 +48,7 @@ Start by understanding the system architecture and load it to context
 4. If `SPEC.md` exists, try to understand what changes user is trying to implement and how it will change the architecture
 
 ### Step 2. Create Initial OWASP Threat Dragon Catalogue
-Draft OWASP Threat Dragon formatted json file based on the
+Draft OWASP Threat Dragon formatted json file based on the `v2.x schema` (**use** `schema.json` as reference)
 
 Instructions to follow: 
   - Populate summary sections
@@ -81,11 +81,11 @@ Instructions to follow:
 
 ## Red Flags
 - Empty catalogue
-- All shapes placed at the same coordinated (e.g., 0,0)
+- All shapes placed at the same coordinates (e.g., 0,0)
 - Threat lists are not empty
 
 ## Verification
 After completing the decomposition confirm that:
 - [ ] `decomposition-results.json` exists in `artefacts/` folder
-- [ ] `decomposition-results.json` is populated uses `OWASP Threat Dragon` schema
+- [ ] `decomposition-results.json` is populated and uses `OWASP Threat Dragon v2.x` schema (**use** `schema.json` as reference)
 - [ ] `decomposition-results.json` has both types and shapes
