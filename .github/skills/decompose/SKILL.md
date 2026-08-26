@@ -21,7 +21,7 @@ Collect architectural information. Create `decomposition-results.json` file in `
 ### Step 1. Collect initial information
 Start by understanding the system architecture and load it to context
 
-1. Look for OpenAPI specifications and collect:
+1. Look for API specifications (e.g., OpenAPI/Swagger) and collect:
    - endpoints: (e.g., `/api/v1/profile`)
    - HTTP methods: (e.g., `GET`, `PUT`)
    - auth scopes: (e.g., `Bearer`)
@@ -37,12 +37,14 @@ Start by understanding the system architecture and load it to context
 
 3. Parse source-code and look for:
     - imports (e.g., HTTP libraries)
+    - file types (e.g., `.ts` instead of `.js` indicates TypeScript)
     - dependencies (e.g., external integrations)
     - ORM schemas and DTO models
     - security configurations
     - database drivers
     - file system writes or cloud resource calls
-    - Web controllers
+    - Look for gRPC, REST, WebSocket, or other network calls
+    - Web controllers (e.g., Express.js/Nest.js/Next.js routes, Spring MVC controllers)
     - Application configuration files or manifests (always ask permission to view)
 
 4. If `SPEC.md` exists, try to understand what changes user is trying to implement and how it will change the architecture
@@ -62,6 +64,8 @@ Shapes should be logically structured and viewable by a human reviewer.
 Instructions to follow: 
 - Have clear horizontal flow: place from left to right (Actors in left, Processes middle, Stores right)
 - Prevent overlapping nodes: add spacing, use different (but logical) coordinates
+  - Human **will** read this diagram, adjust readability
+  - Add enough spacing for clicking the objects in Threat Dragon Web-based UI
 - Draw trust boundaries vertically between public and internal components
 
 ### Quick reference
@@ -73,11 +77,25 @@ Instructions to follow:
 | Data Flow (`tm.Flow`) | Network communications | HTTP/gRPC calls, Message queues (e.g., Kafka, RabbiMQ), WebSocket channel, Database connections |
 | Trust boundary (`tm.Boundary`) | Perimeter transitions | Unautenticated to authenticated, Public subnet to private subnet, internet to DMZ |
 
+### Rendering compatibility that is not covered in `schema.json`
+
+`schema.json` only validates structure/types, not the values Threat Dragon's UI actually needs to render the diagram. Knowledge gathered against the Threat Dragon `td.vue` source (`service/x6/shapes/*`, `service/entity/default-properties.js`):
+
+- `diagram.diagramType` must be one of the threat-modeling methodologies Threat Dragon recognizes: `STRIDE`, `CIA`, `LINDDUN`, `PLOT4ai`, or `Generic`. Do **not** use a format name like `"DFD"` - the summary/description still loads, but the diagram canvas silently fails to render.
+- Registered `shape` values are exactly: `actor`, `process`, `store`, `flow`, `trust-boundary-curve`, `trust-boundary-box`, `td-text-block`.
+- `data.type` values are exactly: `tm.Actor`, `tm.Process`, `tm.Store`, `tm.Flow`, `tm.Boundary` (curve), `tm.BoundaryBox`, `tm.Text`.
+- **Visible labels are NOT driven by `data.name`.** Each cell needs its own separate label field or it renders with a generic/localized shape name (e.g. Finnish UI shows "Toimija"/"Prosessi"/"Tietovirta"/"Säilö"):
+  - Node shapes (`actor`, `process`, `store`) need a top-level `"label": "<name>"` string property (sibling of `shape`/`position`/`size`).
+  - Edge shapes (`flow`, `trust-boundary-curve`) need a top-level `"labels": ["<name>"]` array of plain strings (sibling of `shape`/`source`/`target`).
+  - Keep `data.name` populated too (used for reports/properties panel), but it does not by itself paint the on-canvas text.
+- `store` shapes render as parallel lines, not a stroked box: give them `attrs.topLine`/`attrs.bottomLine` (stroke/strokeWidth), and leave `attrs.body` transparent/unstroked (don't just reuse the `actor`/`process` `attrs.body` stroke pattern).
+- `trust-boundary-curve` is an edge (not a box): its `source`/`target` can be plain `{x, y}` canvas coordinates (not `{cell: id}`), `connector: "smooth"`, and `attrs.line` typically uses `strokeWidth: 3`, `strokeDasharray: "10 5"`, `sourceMarker`/`targetMarker: null` (dashed, no arrowheads).
+
 ## Common Rationalizations
 | Rationalization | Reality |
 |---|---|
 | "I already looked through IaC, no need to search for cloud calls in source-code" | The setup may be more complex than initially seemed |
-| "I will switch to Open Threat Model format, so output is less coupled" | OWASP Threat Dragon specific schema is chosen intentionally |
+| "I will switch to Open Threat Model format, so output is less coupled" | OWASP Threat Dragon specific schema is chosen intentionally, use it strictly |
 
 ## Red Flags
 - Empty catalogue

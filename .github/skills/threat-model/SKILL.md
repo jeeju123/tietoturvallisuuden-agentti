@@ -11,7 +11,7 @@ Do a threat modelling exercise for the software. Identify potential threats, vul
 - New third-party system or an API is integrated
 ## When NOT to use
 - Minor change to the software that does not affect the architecture or data flow
-- Minimum Viable Product (MVP) or prototype software that is not intended for production use is under development
+- Prototype software that is not intended for production use is under development
 - Introducing a commercial software with no customizations or integrations (off-the-shelf software)
 - Only static content
 - Without pre-existing DFD and trust boundaries (use `decompose` skill first)

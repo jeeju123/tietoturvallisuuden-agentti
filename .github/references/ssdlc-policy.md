@@ -20,9 +20,9 @@ Version: 0.1
 | Phase | Skill | Summary | 
 |----------|---------|---------|
 | `/spec` | `/requirements-engineer` | Interview and elicit security-specific non-functional requirements |
-| `/design` | `/secure-architecture` | Apply secure architecture knowledge and provide recommendations |
 | `/design` | `/decompose` | Application/Architectural decomposition, create Data Flow Diagram (DFD) and trust boundaries |
 | `/design` | `/threat-model` | Threat model with STRIDE |
+| `/design` | `/secure-architecture` | Apply secure architecture knowledge and provide recommendations |
 | `/implement` | `/secure-code` | Review application and IaC code against security best practices |
 | `/implement` | `/secret-detection` | Detect any secrets within the code |
 | `/implement` | `/sast` | Conduct Static Application Security Testing (SAST) |
@@ -67,12 +67,14 @@ Pre-task checks:
 Post-task checks:
 - [ ] `decomposition-results.json` exists in `artefacts/` folder
 - [ ] `threat-model.json` exists in `artefacts/` folder
+- [ ] `architecture-improvements.md` exists in `artefacts/` folder
 
 ### 3. Implementation
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists
 - [ ] `decomposition-results.json` exists in `artefacts/` folder and is not stale
 - [ ] `threat-model.json` exists in `artefacts/` folder and is not stale
+- [ ] `architecture-improvements.md` exists in `artefacts/` and is not stale
 
 Post-task checks:
 - [ ] `leaks.json` exists in `artefacts/` folder
