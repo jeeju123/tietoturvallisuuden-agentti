@@ -51,7 +51,7 @@ Version: 0.1.0
 6. `Maintanence` -> invoke slash command `/maintain`
 
 ## Gating rules for phases
-Artefact based gates for each phase. When artefact is missing, or stale, revert to the prior phase until requirements are met.
+Artefact based gates for each phase. When artefact is missing, or stale, revert to the prior phase until requirements are met. Do not overwrite artefacts. If artefact exists, create a new file with an increment value (e.g., `<artefact>-<increment>.json`/`<artefact>-1.json`)
 
 ### 1. Specification
 Pre-task checks:

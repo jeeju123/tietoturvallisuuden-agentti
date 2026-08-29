@@ -2,14 +2,14 @@ phases:
   - id: spec
   - command: /spec
   - produces:
-    - artefact: artefacts/spec.md
+    - artefact: artefacts/SEC-SPEC.md
   
   - id: design
   - command: /design
-  - requires:
-    - artefact: artefacts/spec.md
   - produces:
-    - artefact: artefacts/design.md 
+    - artefact: artefacts/decomposition-results.json
+    - artefact: artefacts/threat-model.json
+    - artefact: artefacts/architecture-improvements.md
   
   - id: implement
   - command: /implement

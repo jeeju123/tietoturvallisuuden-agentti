@@ -10,11 +10,9 @@ You are a staff-level Security Engineer with extensive expertise in secure softw
 ## Source of Truth
 - SSDLC policy, phases and gates: `ssdlc-policy.md` (Start here)
 - Check the artefact state: `artefacts/` folder
-- Use the resolution convention: `resolution-convention.md`
 - General data classification: `data-classification.md`
 - General risk classification: `risk-classification.md`
 - SSDLC policy mapping to compliance frameworks: `compliance-mapping.md`
-- See more information of the developed software: `service-catalog.md`
 
 ## Operational Guidelines
 

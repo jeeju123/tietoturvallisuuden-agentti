@@ -18,7 +18,7 @@ Do a security blueprint for the software. Seek anti-patterns and gaps that harm 
 - Without pre-existing threat model (use `threat-model` skill first)
 
 ## Architectural Security Review
-Collect architectural information and understand the system Data Flow Diagram (DFD), STRIDE Threats, possible mitigations and trust boundaries. Create `architecture-recommendations.md` file in `artefacts/` folder and fill it with security recommendations for architectural improvements.
+Collect architectural information and understand the system Data Flow Diagram (DFD), STRIDE Threats, possible mitigations and trust boundaries. Create `architecture-improvements.md` file in `artefacts/` folder and fill it with security recommendations for architectural improvements.
 
 ### Step 1. Collect initial information
 Start by understanding DFD structure with trust boundaries and load it to context
@@ -52,7 +52,7 @@ Start by understanding DFD structure with trust boundaries and load it to contex
 5. If `SPEC.md` exists, try to understand what changes user is trying to implement and how it will change the architecture
 
 ### Step 2. Analyse architectural gaps and anti-patterns
-Based on the gathered information, identify architectural gaps and anti-patterns that may introduce security risks. Create `architecture-recommendations.md` file in `artefacts/` folder and fill it with security recommendations for architectural improvements. Use the `secure-architecture/` folder inside `references/` for general reference and guidance.
+Based on the gathered information, identify architectural gaps and anti-patterns that may introduce security risks. Create `architecture-improvements.md` file in `artefacts/` folder and fill it with security recommendations for architectural improvements. Use the `secure-architecture/` folder inside `references/` for general reference and guidance.
 
 1. Look for architectural gaps and anti-patterns that may introduce security risks. Such as:
     - Single point of failure/compromise
@@ -85,7 +85,7 @@ Based on the gathered information, identify architectural gaps and anti-patterns
     - Data leakage via client-side caching (e.g., service workers, PWA, CDN)
     - Data leakage via database across multiple tenants (e.g., no row-level security, no tenant isolation)
 
-2. For each potential architectural issue, provide a security recommendation for architectural improvements. Include the information in `architecture-recommendations.md` file in the `artefacts/` folder. Include recommendations and aim for clear and readable list. The items should be actionable, if not, then include them to a separate "Potential issues" section. Give detailed explanations.
+2. For each potential architectural issue, provide a security recommendation for architectural improvements. Include the information in `architecture-improvements.md` file in the `artefacts/` folder. Include recommendations and aim for clear and readable list. The items should be actionable, if not, then include them to a separate "Potential issues" section. Give detailed explanations.
 
 ## Common Rationalizations
 | Rationalization | Reality |
@@ -93,12 +93,12 @@ Based on the gathered information, identify architectural gaps and anti-patterns
 | "This issue may be abused in a very specific scenario, not actionable" | Add to a "Potential issues" section |
 
 ## Red Flags
-- Empty `architecture-recommendations.md` file
+- Empty `architecture-improvements.md` file
 - No issues were found
 
 
 ## Verification
 After completing the decomposition confirm that:
-- [ ] `architecture-recommendations.md` exists in `artefacts/` folder
-- [ ] `architecture-recommendations.md` has recommendations for architectural improvements
-- [ ] `architecture-recommendations.md` recommendations have been enriched with detailed explanations
+- [ ] `architecture-improvements.md` exists in `artefacts/` folder
+- [ ] `architecture-improvements.md` has recommendations for architectural improvements
+- [ ] `architecture-improvements.md` recommendations have been enriched with detailed explanations
