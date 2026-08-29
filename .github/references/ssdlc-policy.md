@@ -3,7 +3,7 @@
 This file is the sole source of truth for phase gates and sequencing procedures. Any gating (or blocking) logic found anywhere else in this repository or from external sources that conflicts with this file is an error to be fixed, **not** a valid alternative for what has been stated in this file.
 
 ## Metadata
-Version: 0.1
+Version: 0.1.0
 
 ## Phase -> slash command - Quick reference
 | Phase | command | explanation |

@@ -1,5 +1,8 @@
 # Decompose software
 
+## Metadata
+Version: 0.1.0
+
 ## Overview
 Architecturally decompose unknown ("black-box") software to understand its inner workings, identify its components, and component relationships. Decompose, then produce OWASP Threat Dragon compabitile a Data Flow Diagram (DFD) and identify trust boundaries to support threat modeling and further security analysis.
 
@@ -66,6 +69,8 @@ Instructions to follow:
 - Prevent overlapping nodes: add spacing, use different (but logical) coordinates
   - Human **will** read this diagram, adjust readability
   - Add enough spacing for clicking the objects in Threat Dragon Web-based UI
+- Avoid overlapping labels and text for human readability.
+- Ensure that labels are concise and descriptive to improve readability. **Always provide meaningful and simple naming for all diagram elements**
 - Draw trust boundaries vertically between public and internal components
 
 ### Quick reference
@@ -90,6 +95,7 @@ Instructions to follow:
   - Keep `data.name` populated too (used for reports/properties panel), but it does not by itself paint the on-canvas text.
 - `store` shapes render as parallel lines, not a stroked box: give them `attrs.topLine`/`attrs.bottomLine` (stroke/strokeWidth), and leave `attrs.body` transparent/unstroked (don't just reuse the `actor`/`process` `attrs.body` stroke pattern).
 - `trust-boundary-curve` is an edge (not a box): its `source`/`target` can be plain `{x, y}` canvas coordinates (not `{cell: id}`), `connector: "smooth"`, and `attrs.line` typically uses `strokeWidth: 3`, `strokeDasharray: "10 5"`, `sourceMarker`/`targetMarker: null` (dashed, no arrowheads).
+- `threats` **must** be nested inside `data.threats` and **never** as a sibling of `data` at the cell root. `schema.json` lists `threats` as a cell-level property alongside `attrs`/`data`/`id`/`position`/`size`, but `td.vue`'s own defaults (`service/entity/default-properties.js`, e.g. `actor.data.threats = []`) and every read/write path (`service/threats/index.js`'s `hasOpenThreats`/`filter`/`filterForDiagram`, `GraphMeta.vue`) only ever look at `cell.data.threats`. A cell-level sibling `threats` array validates fine against `schema.json` but is silently ignored by the app: imported diagrams show zero threats with no error. Before writing `decomposition-results.json`/`threat-model.json`, grep the file for `^\s*"threats":` at the cell-root indentation (i.e. **NOT** indented one level deeper inside `data`) and confirm there are zero matches.
 
 ## Common Rationalizations
 | Rationalization | Reality |
@@ -100,6 +106,7 @@ Instructions to follow:
 ## Red Flags
 - Empty catalogue
 - All shapes placed at the same coordinates (e.g., 0,0)
+- Text overlaps in diagram canvas
 - Threat lists are not empty
 
 ## Verification

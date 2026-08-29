@@ -1,5 +1,8 @@
 # Threat Model
 
+## Metadata
+Version: 0.1.0
+
 ## Overview
 Do a threat modelling exercise for the software. Identify potential threats, vulnerabilities and attack vectors using the STRIDE framework.
 
@@ -48,6 +51,7 @@ Instructions to follow:
     - Actors: Evaluate Spoofing, Repudiation threats
     - Processes: Evaluate Elevation of Privilege and Tampering threats
   - Attach severity, description, and mitigation recommendations (among other available fields) for each identified threat (According to `v2.x schema`, **use** `schema.json` as reference). **Always** Refer to `risk-classification.md` for severity classification.
+  - **Nest each cell's threats under `data.threats`** (e.g. `cell.data.threats = [...]`), **never** as a sibling property of `data` at the cell root. See the `decompose` skill's 'Rendering compatibility' notes. `schema.json` alone does not catch incorrect nesting. Failure to follow this rule will result in threats not being rendered correctly in Threat Dragon.
 
 
 ### Quick STRIDE threat reference
@@ -81,6 +85,7 @@ If `SPEC.md` exists, review existing threats in `threat-model.json` and update t
 
 ## Red Flags
 - Empty `threat-model.json` file
+- Threats are not nested under `data.threats` in each cell
 - All shapes placed at the same coordinates (e.g., 0,0)
 - Threat lists are empty
 - Threats have empty fields for severity, description, or mitigation recommendations

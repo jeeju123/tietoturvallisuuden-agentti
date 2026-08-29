@@ -31,7 +31,7 @@
   },
 
   // Adjust agent network access. If both lists are empty, no access is allowed.
-  "chat.agent.networkFilter": true,
+  "chat.agent.networkFilter": false,
   "chat.agent.allowedNetworkDomains": [
       "<domain>"
   ],
