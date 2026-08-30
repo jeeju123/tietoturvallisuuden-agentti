@@ -102,6 +102,7 @@ Instructions to follow:
 |---|---|
 | "I already looked through IaC, no need to search for cloud calls in source-code" | The setup may be more complex than initially seemed |
 | "I will switch to Open Threat Model format, so output is less coupled" | OWASP Threat Dragon specific schema is chosen intentionally, use it strictly |
+| "I am unsure about this part of the diagram schema" | If you are uncertain, seek clarification from the official threat dragon repository or documentation before making assumptions. In any other case, always ask the user for guidance |
 
 ## Red Flags
 - Empty catalogue
