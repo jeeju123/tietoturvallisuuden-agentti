@@ -1,10 +1,11 @@
-# Threat Model
-
-## Metadata
-Version: 0.1.0
-
-## Overview
-Do a threat modelling exercise for the software. Identify potential threats, vulnerabilities and attack vectors using the STRIDE framework.
+---
+name: threat-model
+description: Do a threat modelling exercise for the software. Identify potential threats, vulnerabilities and attack vectors using the STRIDE framework
+compatibility: Requires OWASP Threat Dragon formatted JSON diagram from the `decompose` skill
+metadata:
+  author: Juho Salomäki
+  version: "0.1.0"
+---
 
 ## When to Use
 - After decomposing the software and creating a Data Flow Diagram (DFD) with trust boundaries

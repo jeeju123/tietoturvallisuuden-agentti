@@ -1,10 +1,10 @@
-# Decompose software
-
-## Metadata
-Version: 0.1.0
-
-## Overview
-Architecturally decompose unknown ("black-box") software to understand its inner workings, identify its components, and component relationships. Decompose, then produce OWASP Threat Dragon compabitile a Data Flow Diagram (DFD) and identify trust boundaries to support threat modeling and further security analysis.
+---
+name: decompose
+description: Architecturally decompose unknown ("black-box") software to understand its inner workings, identify its components, and component relationships. Decompose, then produce OWASP Threat Dragon compatible a Data Flow Diagram (DFD) and identify trust boundaries to support threat modeling and further security analysis
+metadata:
+  author: Juho Salomäki
+  version: "0.1.0"
+---
 
 ## When to Use
 - Before threat modelling, when Data Flow Diagram (DFD) and trust boundaries are not available

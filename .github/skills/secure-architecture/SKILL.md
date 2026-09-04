@@ -1,7 +1,10 @@
-# Threat Model
-
-## Overview
-Do a security blueprint for the software. Seek anti-patterns and gaps that harm security posture. Give security recommendations for architectural improvements.
+---
+name: secure-architecture
+description: Ensure the software architecture is designed with security in mind, identifying potential threats, architectural gaps, and anti-patterns, and providing recommendations for secure architectural improvements.
+metadata:
+  author: Juho Salomäki
+  version: "0.1.0"
+---
 
 ## When to Use
 - After decomposition and threat modelling activities are completed
