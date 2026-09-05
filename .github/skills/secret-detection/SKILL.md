@@ -25,20 +25,13 @@ metadata:
 
 ## Execution
 1. Navigate to the root directory of the repository - same level as `.github/`.
-2. Run the following commands to scan for secrets - If you are unsure whether user is new to the repository, it is recommended to run a full scan. Output shall be saved to `./artefacts/secret-detection-results.json` file.
+2. Run the following command to scan for secrets. Output shall be saved to `./artefacts/secret-detection-results.json` file.
     - **If user is new to the repository**, then run a full scan to detect secrets within the entire repository's git history:
-      ```bash
-      gitleaks git -v --report-format=json --report-path  ./artefacts/secret-detection-results.json --redact
+      ```pwsh
+      gitleaks git -v --report-format=json --report-path ./artefacts/history-results.json --redact; gitleaks protect -v --staged --report-format=json --report-path ./artefacts/staged-results.json --redact; gitleaks dir --report-format=json --report-path ./artefacts/dir-results.json --redact .; $combined = @(); foreach ($f in "./artefacts/history-results.json","./artefacts/staged-results.json","./artefacts/dir-results.json") { if (Test-Path $f) { $data = Get-Content $f -Raw | ConvertFrom-Json; if ($data) { $combined += @($data) } } }; if ($combined.Count -eq 0) { "[]" | Out-File -Encoding utf8 ./artefacts/detection-results.json } else { $combined | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 ./artefacts/secret-detection-results.json }
       ```
-    - **If user has staged changes**, then run a scan to detect secrets within the staged changes:
-      ```bash
-      gitleaks protect -v --staged --report-format=json --report-path  ./artefacts/secret-detection-results.json --redact
-      ```
-    - **If user has unstaged changes/local modifications**, then run a scan to detect secrets within the local working directory changes:
-      ```bash
-      gitleaks dir --report-format=json --report-path  ./artefacts/secret-detection-results.json --redact .
-      ```
-3. Review the output from `./artefacts/secret-detection-results.json` for any detected secrets. **DO NOT** read the secrets, or modify the files. User must manually verify and remediate the findings, and let user know if any secrets were found. You should always report to user:
+
+3. Review the output from `./artefacts/secret-detection-results.json` for any detected secrets. Also, confirm that the file output matches findings from the individual scans (`history-results.json`, `staged-results.json`, `dir-results.json`). **DO NOT** read the secrets, or modify the files. User must manually verify and remediate the findings, and let user know if any secrets were found. You should always report to user the following information for each detected secret:
     - `RuleID` field
     - Description
     - Where the secret can be found (e.g., file name/path, line number)
