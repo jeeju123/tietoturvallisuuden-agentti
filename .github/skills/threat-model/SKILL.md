@@ -21,7 +21,7 @@ metadata:
 - Without pre-existing DFD and trust boundaries (use `decompose` skill first)
 
 ## STRIDE Threat Modelling
-Collect architectural information and understand the system Data Flow Diagram (DFD) and trust boundaries. Create `threat-model.json` file in `artefacts/` folder and fill it with `OWASP Threat Dragon` schema formatted DFD + trust boundaries + STRIDE threats. **Use** the `v2.x schema` (**use** `schema.json` as reference).
+Collect architectural information and understand the system Data Flow Diagram (DFD) and trust boundaries. Create `threat-model-results.json` file in `artefacts/` folder and fill it with `OWASP Threat Dragon` schema formatted DFD + trust boundaries + STRIDE threats. **Use** the `v2.x schema` (**use** `schema.json` as reference).
 
 ### Step 1. Collect initial information
 Start by understanding DFD structure with trust boundaries and load it to context
@@ -38,7 +38,7 @@ Start by understanding DFD structure with trust boundaries and load it to contex
 3. If `SPEC.md` exists, try to understand what changes user is trying to implement and how it will change the architecture
 
 ### Step 2. Start threat modelling
-Threat Dragon element-by-element, identify potential threats using STRIDE framework. Populate `threat-model.json` file in `artefacts/` folder with identified threats.
+Threat Dragon element-by-element, identify potential threats using STRIDE framework. Populate `threat-model-results.json` file in `artefacts/` folder with identified threats.
 
 **If `SPEC.md` exists, consider how the proposed changes may introduce new threats or modify existing ones.**
 
@@ -66,7 +66,6 @@ Instructions to follow:
 | Elevation of Privilege | Authorization | Gain higher privileges than given | Writing to privileged cron-jobs as unprivileged user, Broken Object Level Authorization (BOLA) |
 
 ### Quick STRIDE -> Threat Dragon compatibility reference
-
 | DFD Element name | Possible STRIDE threat | Example of element
 |---|-------|------|
 | Actors (`tm.Actor`) | Spoofing, Repudiation | Human (e.g., Admin, User) or Machine (e.g., Webhooks, Third-party APIs) |
@@ -76,8 +75,7 @@ Instructions to follow:
 | Trust boundary (`tm.Boundary`) | Perimeter transitions | Unautenticated to authenticated, Public subnet to private subnet, internet to DMZ |
 
 ### Step 3. Post-threat modelling
-
-If `SPEC.md` exists, review existing threats in `threat-model.json` and update them if necessary based on new information or changes proposed in `SPEC.md`.
+If `SPEC.md` exists, review existing threats in `threat-model-results.json` and update them if necessary based on new information or changes proposed in `SPEC.md`.
 
 ## Common Rationalizations
 | Rationalization | Reality |
@@ -85,7 +83,7 @@ If `SPEC.md` exists, review existing threats in `threat-model.json` and update t
 | "I don't think this threat is realistic, I will skip it" | That might not be the case, prompt user for a justification |
 
 ## Red Flags
-- Empty `threat-model.json` file
+- Empty `threat-model-results.json` file
 - Threats are not nested under `data.threats` in each cell
 - All shapes placed at the same coordinates (e.g., 0,0)
 - Threat lists are empty
@@ -93,6 +91,6 @@ If `SPEC.md` exists, review existing threats in `threat-model.json` and update t
 
 ## Verification
 After completing the decomposition confirm that:
-- [ ] `threat-model.json` exists in `artefacts/` folder
-- [ ] `threat-model.json` is populated and uses `OWASP Threat Dragon v2.x` schema (**use** `schema.json` as reference)
-- [ ] `threat-model.json` has enriched threats with severity, description, and mitigation recommendations
+- [ ] `threat-model-results.json` exists in `artefacts/` folder
+- [ ] `threat-model-results.json` is populated and uses `OWASP Threat Dragon v2.x` schema (**use** `schema.json` as reference)
+- [ ] `threat-model-results.json` has enriched threats with severity, description, and mitigation recommendations

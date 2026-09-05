@@ -66,25 +66,25 @@ Pre-task checks:
 
 Post-task checks:
 - [ ] `decomposition-results.json` exists in `artefacts/` folder
-- [ ] `threat-model.json` exists in `artefacts/` folder
-- [ ] `architecture-improvements.md` exists in `artefacts/` folder
+- [ ] `threat-model-results.json` exists in `artefacts/` folder
+- [ ] `IMPROVEMENTS.md` exists in `artefacts/` folder
 
 ### 3. Implementation
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists
 - [ ] `decomposition-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `threat-model.json` exists in `artefacts/` folder and is not stale
-- [ ] `architecture-improvements.md` exists in `artefacts/` and is not stale
+- [ ] `threat-model-results.json` exists in `artefacts/` folder and is not stale
+- [ ] `IMPROVEMENTS.md` exists in `artefacts/` and is not stale
 
 Post-task checks:
-- [ ] `leaks.json` exists in `artefacts/` folder
+- [ ] `secret-detection-results.json` exists in `artefacts/` folder
 - [ ] `sast-results.json` exists in `artefacts/` folder
 - [ ] `sca-results.json` exists in `artefacts/` folder
 
 ### 3. Code review
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
-- [ ] `leaks.json` exists in `artefacts/` folder and is not stale
+- [ ] `secret-detection-results.json` exists in `artefacts/` folder and is not stale
 - [ ] `sast-results.json` exists in `artefacts/` folder and is not stale
 - [ ] `sca-results.json` exists in `artefacts/` folder and is not stale
 
