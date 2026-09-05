@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Conduct code reviews within the SSDLC agent, identifying potential security vulnerabilities, ensuring adherence to secure coding practices, and providing actionable feedback to developers.
+description: Facilitate and manage the process of reviewing code within the SSDLC agent. Create pull requests to development/staging environments and manage state of manual code reviews for the agent.
 metadata:
   author: Juho Salomäki
   version: "0.1.0"

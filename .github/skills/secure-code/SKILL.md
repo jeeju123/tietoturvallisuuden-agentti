@@ -12,8 +12,6 @@ metadata:
 ## When NOT to use
 - 
 
-
-
 ## Common Rationalizations
 | Rationalization | Reality |
 |---|---|
