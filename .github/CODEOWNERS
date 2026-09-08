@@ -1,0 +1,16 @@
+# Example CODEOWNERS
+
+# Default owners (e.g., organization's maintainer)
+* @jeeju123
+
+# Prompt owners (e.g., organization's maintainer)
+/prompts @jeeju123
+
+# Reference owners (e.g., security team)
+/references @jeeju123 
+
+# Fine-grained skill ownership (e.g., a specialized, office wizard)
+/skills/sca @jeeju123
+
+# VS code settings changes (e.g., IT-oriented)
+/.vscode @jeeju123
