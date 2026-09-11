@@ -42,6 +42,18 @@ Threat Dragon element-by-element, identify potential threats using STRIDE framew
 
 **If `SPEC.md` exists, consider how the proposed changes may introduce new threats or modify existing ones.**
 
+Understand the following attacker types and their potential motivations:
+  - State-actors: Advanced persistent threats sponsored by nation-states. Motivation is to achieve political, economic, or strategic objectives (e.g., disrupt infrastructure, steal sensitive information)
+  - Crooks: Individuals or groups motivated by personal financial gain through illegal activities (e.g., fraud, theft, ransomware attacks). They are directly conducting the illegal activities themselves
+  - Geeks: Individuals with deep technical knowledge who may exploit vulnerabilities for intellectual challenge, curiosity, or personal satisfaction
+  - Hacktivists: Individuals or groups motivated by political or social causes, aiming to promote their agenda through cyber attacks (e.g., website defacement, data leaks)
+  - Insiders: Employees, contractors, or other trusted individuals within an organization who may misuse their access for personal gain, revenge, or negligence
+  - Competitors: Rival organizations (usually companies) seeking to gain a competitive advantage through industrial espionage, sabotage, or other malicious activities
+  - Script kiddies: Individuals with limited technical skills who use pre-made tools or scripts to exploit vulnerabilities, often for fun or notoriety
+  - Crime-as-a-Service: Individuals or groups who provide criminal services through their own expertise. "Hackers for hire" model
+  - Trolls: Individuals who deliberately provoke or harass others online, often to elicit emotional responses or disrupt discussions
+  - Bullies and abusers: Individuals who use intimidation, threats, or abusive behavior to harm or control others, both online and offline. Intentionally malicious (e.g., cyberbullying, harassment campaigns, ex-partner harrassment) to cause emotional, psychological, or physical harm
+
 Instructions to follow: 
   - Analyze each DFD element (`tm.Actor`, `tm.Process`, `tm.Store`, `tm.Flow`, `tm.Boundary`) and identify potential threats based on STRIDE categories (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege)
   - When Boundary is crossed, any flow that crosses the boundary should be considered for threats. Especially for:
