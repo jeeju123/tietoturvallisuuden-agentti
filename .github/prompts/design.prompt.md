@@ -1,5 +1,5 @@
 ---
-agent: 'agent'
+agent: 'vigil-ai'
 description: 'Look through the application design from a security perspective and give feedback'
 ---
 

@@ -77,15 +77,19 @@ Pre-task checks:
 - [ ] `IMPROVEMENTS.md` exists in `artefacts/` and is not stale
 
 Post-task checks:
+- [ ] `security-code-review.md` exists in `artefacts/` folder
 - [ ] `secret-detection-results.json` exists in `artefacts/` folder
 - [ ] `sast-results.json` exists in `artefacts/` folder
+- [ ] `sbom-results.json` exists in `artefacts/` folder
 - [ ] `sca-results.json` exists in `artefacts/` folder
 
 ### 3. Code review
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
+- [ ] `security-code-review.md` exists in `artefacts/` folder
 - [ ] `secret-detection-results.json` exists in `artefacts/` folder and is not stale
 - [ ] `sast-results.json` exists in `artefacts/` folder and is not stale
+- [ ] `sbom-results.json` exists in `artefacts/` folder and is not stale
 - [ ] `sca-results.json` exists in `artefacts/` folder and is not stale
 
 Post-task checks:
