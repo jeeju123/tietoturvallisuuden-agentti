@@ -28,8 +28,8 @@ Version: 0.1.0
 | `/implement` | `/sast` | Conduct Static Application Security Testing (SAST) |
 | `/implement` | `/sbom` | Generate a Software Bill of Materials (SBOM) |
 | `/implement` | `/sca` | Do Software Composition Analysis (SCA) |
-| `/test` | `/dast` | Conduct Dynamic Application Security Testing (DAST) |
 | `/code-review` | `/code-review` | Create Pull/Merge Request to development/staging environment and wait for manual approval |
+| `/test` | `/dast` | Conduct Dynamic Application Security Testing (DAST) |
 | `/test` | `/triage` | Triage vulnerabilities found from tests |
 | `/deploy` | `/harden` | Harden infrastructure configurations |
 | `/deploy` | `/container-scan` | Scan the entire container for vulnerabilities |
@@ -67,14 +67,13 @@ Pre-task checks:
 Post-task checks:
 - [ ] `decomposition-results.json` exists in `artefacts/` folder
 - [ ] `threat-model-results.json` exists in `artefacts/` folder
-- [ ] `IMPROVEMENTS.md` exists in `artefacts/` folder
+- [ ] `architecure-review.md` exists in `artefacts/` folder
+- [ ] `DESIGN-PHASE.md` exists in `artefacts/` folder
 
 ### 3. Implementation
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists
-- [ ] `decomposition-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `threat-model-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `IMPROVEMENTS.md` exists in `artefacts/` and is not stale
+- [ ] `DESIGN-PHASE.md` exists in `artefacts/` folder and is not stale
 
 Post-task checks:
 - [ ] `security-code-review.md` exists in `artefacts/` folder
@@ -82,48 +81,46 @@ Post-task checks:
 - [ ] `sast-results.json` exists in `artefacts/` folder
 - [ ] `sbom-results.json` exists in `artefacts/` folder
 - [ ] `sca-results.json` exists in `artefacts/` folder
+- [ ] `IMPLEMENT-PHASE.md` exists in `artefacts/` folder
 
 ### 3. Code review
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
-- [ ] `security-code-review.md` exists in `artefacts/` folder
-- [ ] `secret-detection-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `sast-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `sbom-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `sca-results.json` exists in `artefacts/` folder and is not stale
+- [ ] `IMPLEMENT-PHASE.md` exists in `artefacts/` folder and is not stale
 
 Post-task checks:
-- [ ] `SIGNOFF.md` exists in `artefacts/` folder
+- [ ] `signoff.md` exists in `artefacts/` folder
 
 ### 4. Testing
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
-- [ ] `SIGNOFF.md` exists in `artefacts/` folder
+- [ ] `signoff.md` exists in `artefacts/` folder
 
 Post-task checks:
 - [ ] `dast-results.json` exists in `artefacts/` folder
-- [ ] `TRIAGE.md` exists in `artefacts/` folder
+- [ ] `triage.md` exists in `artefacts/` folder
+- [ ] `TEST-PHASE.md` exists in `artefacts/` folder
 
 ### 5. Deployment
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
-- [ ] `dast-results.json` exists in `artefacts/` folder and is not stale
-- [ ] `TRIAGE.md` exists in `artefacts/` folder and is not stale
+- [ ] `TEST-PHASE.md` exists in `artefacts/` folder and is not stale
 
 Post-task checks:
 - [ ] `container-scan-results.json` exists in `artefacts/` folder
+- [ ] `DEPLOY-PHASE.md` exists in `artefacts/` folder
 
 ### 6. Maintain
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists in `artefacts/` folder
-- [ ] `container-scan-results.json` exists in `artefacts/` folder and is not stale
 
 Post-task checks:
 - [ ] `maintain-run-leaks.json` exists in `artefacts/` folder
 - [ ] `maintain-run-sast-results.json` exists in `artefacts/` folder
 - [ ] `maintain-run-sca-results.json` exists in `artefacts/` folder
 - [ ] `maintain-run-container-scan-results.json` exists in `artefacts/` folder
-- [ ] `MAINTAIN-TRIAGE.md` exists in `artefacts/` folder
+- [ ] `maintain-triage.md` exists in `artefacts/` folder
+- [ ] `MAINTAIN-PHASE.md` exists in `artefacts/` folder
 
 ## Staleness rule
 Any artefact depending on an earlier artefact is considered **stale**, if its dependency changed since it was generated.
@@ -134,7 +131,7 @@ When a new vulnerability found. Follow the steps:
   2. Based on analysis, determine whether risk is accepted or should be escalated. Refer to `risk-classification.md`. If is accepted: abort, if not accepted continue to next step.
   3. Confirm decision with user.
   3. Execute slash command `/ticket` to invoke skill to create a Jira ticket.
-  4. Check that `JIRA-RECEIPT.md` exists inside `artefacts/` folder.
+  4. Check that `jira-receipt.md` exists inside `artefacts/` folder.
 
 ## Autonomous execution policy
 Only tools and commands that have **low blast-radius**, **clear**, **deterministic** and **test-verifiable results** can be run fully automated by the agent. Every tool or decision that may affect any external system or produce any trail outside the repository or IDE session shall **always** be confirmed with the user.

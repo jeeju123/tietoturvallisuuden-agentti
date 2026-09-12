@@ -18,6 +18,9 @@ You are going to analyse the existing system laid out in the repository, from in
 5. Run Software Composition Analysis (SCA) tools to identify known vulnerabilities in the dependencies and third-party libraries used in the project.
 6. Summarize findings and suggestions in a clear and concise manner.
 7. Ensure that you have provided all necessary artefacts according to the SSDLC policy guidance.
+8. After finishing all the steps, create a `IMPLEMENT-PHASE.md` file in the `artefacts/` directory summarizing the implementation details, findings, and recommendations. The file should contain clear summary from each step of the process.
+  - `artefacts/IMPLEMENT-PHASE.md` should include timestamps, tools used, and any potential open questions or follow-up actions.
+  - Ensure that the `IMPLEMENT-PHASE.md` file is clear, concise, and provides actionable recommendations for improving the security posture of the application.
 
 ## Rules
 

@@ -9,15 +9,8 @@
     },
     "github": {
       "type": "http",
-      "headers": {
-        "Authorization": "Bearer <ACCESS_TOKEN>"
-      },
-      "oauth": {
-        "clientId": "<CLIENT_ID>",
-        "enterpriseManaged": false
-      },
-      "url": "https://api.githubcopilot.com/mcp"
-    },
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
   },
   "sandbox": {
     "filesystem": {

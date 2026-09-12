@@ -41,6 +41,7 @@ metadata:
     - Author, if available
     - Remediation steps based on the type of an secret and how to properly handle secrets with the context of the repository.
     - Any other information you deem relevant for the user to know regarding the detected secret.
+4. Remove the intermediate files `history-results.json`, `staged-results.json`, and `dir-results.json` from the `artefacts/` directory to keep only the consolidated `secret-detection-results.json`.
 
 ## Common Rationalizations
 | Rationalization | Reality |
