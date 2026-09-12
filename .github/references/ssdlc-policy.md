@@ -46,6 +46,7 @@ Version: 0.1.0
 1. `Specification` -> invoke slash command `/spec`
 2. `Design` -> invoke slash command `/design`
 3. `Implementation` -> invoke slash command `/implement`
+4. `Code review` -> invoke slash command `/code-review`
 4. `Testing` -> invoke slash command `/test`
 5. `Deployment` -> invoke slash command `/deploy`
 6. `Maintanence` -> invoke slash command `/maintain`
