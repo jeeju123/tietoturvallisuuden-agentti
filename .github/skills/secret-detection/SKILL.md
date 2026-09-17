@@ -22,26 +22,26 @@ metadata:
   gitleaks version
   ```
 - If the command returns an error or does not display version information, prompt user to install the secret detection tool - Gitleaks (with available package manager e.g., `brew install gitleaks` or `winget install gitleaks`). If user does not want to install, **stop** the skill execution and instruct user to install gitleaks before proceeding.
+- **Confirm that Node.js is available** (`node -v`) to run the bundled detection script [run-secret-detection.js](./run-secret-detection.js).
 
 ## Execution
 1. Navigate to the root directory of the repository - same level as `.github/`.
-2. Run the following command to scan for secrets. Output shall be saved to `./artefacts/secret-detection-results.json` file.
-    - **If user is new to the repository**, then run a full scan to detect secrets within the entire repository's git history:
-      ```pwsh
-      gitleaks git -v --report-format=json --report-path ./artefacts/history-results.json --redact; gitleaks protect -v --staged --report-format=json --report-path ./artefacts/staged-results.json --redact; gitleaks dir --report-format=json --report-path ./artefacts/dir-results.json --redact .; $combined = @(); foreach ($f in "./artefacts/history-results.json","./artefacts/staged-results.json","./artefacts/dir-results.json") { if (Test-Path $f) { $data = Get-Content $f -Raw | ConvertFrom-Json; if ($data) { $combined += @($data) } } }; if ($combined.Count -eq 0) { "[]" | Out-File -Encoding utf8 ./artefacts/detection-results.json } else { $combined | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 ./artefacts/secret-detection-results.json }
-      ```
+2. Run the bundled secret detection script [run-secret-detection.js](./run-secret-detection.js). It executes Gitleaks across git history, staged changes, and working directory, extracts only the necessary fields, deduplicates findings, safely cleans up intermediate files, and saves structured JSON to `./artefacts/secret-detection-results.json`:
+    ```bash
+    node .github/skills/secret-detection/run-secret-detection.js
+    ```
+    *(Note: If only staged files or specific targets are needed, use flags such as `--mode staged` or `--mode dir`)*.
 
-3. Review the output from `./artefacts/secret-detection-results.json` for any detected secrets. Also, confirm that the file output matches findings from the individual scans (`history-results.json`, `staged-results.json`, `dir-results.json`). **DO NOT** read the secrets, or modify the files. User must manually verify and remediate the findings, and let user know if any secrets were found. You should always report to user the following information for each detected secret:
-    - `RuleID` field
+3. Review the output from `./artefacts/secret-detection-results.json` for any detected secrets. **DO NOT** read the secrets, or modify the files. User must manually verify and remediate the findings, and let user know if any secrets were found. You should always report to user the following information for each detected secret:
+    - `ruleId` field
     - Description
     - Where the secret can be found (e.g., file name/path, line number)
     - Fingerprint
     - Commit hash, if available
     - Date, if available
     - Author, if available
-    - Remediation steps based on the type of an secret and how to properly handle secrets with the context of the repository.
+    - Remediation steps based on the type of a secret and how to properly handle secrets within the context of the repository.
     - Any other information you deem relevant for the user to know regarding the detected secret.
-4. Remove the intermediate files `history-results.json`, `staged-results.json`, and `dir-results.json` from the `artefacts/` directory to keep only the consolidated `secret-detection-results.json`.
 
 ## Common Rationalizations
 | Rationalization | Reality |
@@ -50,7 +50,7 @@ metadata:
 | "User wants to make a commit, I only need to scan staged files" | Scanning only staged changes might miss secrets in working directory, that user may neglect later on if not addressed. Always prefer scanning working directory and staged changes. |
 ## Red Flags
 - `./artefacts/secret-detection-results.json` is empty, there should at least be `[]` within the file, indicating that no secrets were detected.
--  Gitleaks version was not displayed during initial `gitleaks version` command.
+- Gitleaks or Node.js version was not displayed during initial (e.g., `gitleaks version` or `node -v`) command.
 
 ## Verification
 After completing secret detection, confirm that:

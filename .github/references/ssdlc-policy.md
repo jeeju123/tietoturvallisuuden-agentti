@@ -28,11 +28,11 @@ Version: 0.1.0
 | `/implement` | `/sast` | Conduct Static Application Security Testing (SAST) |
 | `/implement` | `/sbom` | Generate a Software Bill of Materials (SBOM) |
 | `/implement` | `/sca` | Do Software Composition Analysis (SCA) |
-| `/code-review` | `/code-review` | Create Pull/Merge Request to development/staging environment and wait for manual approval |
+| `/code-review` | `/code-review` | Create pull/merge-requests for automatic Copilot code review and fix potential issues |
 | `/test` | `/dast` | Conduct Dynamic Application Security Testing (DAST) |
 | `/test` | `/triage` | Triage vulnerabilities found from tests |
 | `/deploy` | `/harden` | Harden infrastructure configurations |
-| `/deploy` | `/container-scan` | Scan the entire container for vulnerabilities |
+| `/deploy` | `/pre-deployment-scan` | Scan container, configurations, IaC for potential deployment related security issues |
 | `/maintain` | `/secret-detection` | Continiously detect secrets |
 | `/maintain` | `/sbom` | Continious Software Bill of Materials (SBOM) generation |
 | `/maintain` | `/sca` | Continious Software Composition Analysis (SCA) |
