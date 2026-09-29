@@ -6,6 +6,7 @@ Version: 0.1.0
 ## Risk categories
 | Risk class | Operation action | Target SLA |
 |----------|---------|---------|
+| Blocker | Operation shall not proceed without fixing the issue | immediate |
 | Emergency/Critical | Upmost priority. Create backlog item outside sprint scope and hotfix immediately | 24-72 hours |
 | High/Elevated | Bring item to sprint and ticket should be actively worked on within 24-48h | 7-14 days |
 | Moderate | Treat as typical maintanence item, bring to next sprint | 30-60 days |
