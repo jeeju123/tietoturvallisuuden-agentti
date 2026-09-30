@@ -36,7 +36,7 @@ Version: 0.1.0
 | `/maintain` | `/secret-detection` | Continiously detect secrets |
 | `/maintain` | `/sbom` | Continious Software Bill of Materials (SBOM) generation |
 | `/maintain` | `/sca` | Continious Software Composition Analysis (SCA) |
-| `/maintain` | `/container-scan` | Continiously scan containers |
+| `/maintain` | `/pre-deployment-scan` | Continiously scan container, configuration, IaC for potential issues in deployed software |
 | `/maintain` | `/triage` | Continiously triage vulnerabilities |
 
 # Artefacts
@@ -99,7 +99,7 @@ Pre-task checks:
 
 Post-task checks:
 - [ ] `dast-results.json` exists in `artefacts/` folder
-- [ ] `triage.md` exists in `artefacts/` folder
+- [ ] `triage-results.md` exists in `artefacts/` folder
 - [ ] `TEST-PHASE.md` exists in `artefacts/` folder
 
 ### 5. Deployment
