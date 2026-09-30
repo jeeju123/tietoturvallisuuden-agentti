@@ -31,8 +31,8 @@ Version: 0.1.0
 | `/code-review` | `/code-review` | Create pull/merge-requests for automatic Copilot code review and fix potential issues |
 | `/test` | `/dast` | Conduct Dynamic Application Security Testing (DAST) |
 | `/test` | `/triage` | Triage vulnerabilities found from tests |
-| `/deploy` | `/harden` | Harden infrastructure configurations |
 | `/deploy` | `/pre-deployment-scan` | Scan container, configurations, IaC for potential deployment related security issues |
+| `/deploy` | `/harden` | Harden infrastructure configurations |
 | `/maintain` | `/secret-detection` | Continiously detect secrets |
 | `/maintain` | `/sbom` | Continious Software Bill of Materials (SBOM) generation |
 | `/maintain` | `/sca` | Continious Software Composition Analysis (SCA) |
