@@ -37,13 +37,46 @@ if [[ ! -d "$REPORTS_DIR" ]]; then
     exit 1
 fi
 
-echo "Scanning $TARGET (validated) ..."
-echo "Report will be written to: $REPORTS_DIR/"
+echo "Starting OWASP ZAP baseline scan against $TARGET (validated)..."
+echo "ZAP is actively spidering and scanning endpoints in a Docker container."
+echo "This process typically takes 1 to 3 minutes. Please wait for the scan to finish..."
 
+RAW_REPORT="raw-dast-report.json"
+
+# ZAP baseline scan returns exit code 0 (clean), 1 (warnings/alerts found), or 2 (failures).
+# We catch the exit code with set +e so findings are not truncated and parsing always runs.
+set +e
 docker run --rm -t \
     -v "$REPORTS_DIR:/zap/wrk/:rw" \
     zaproxy/zap-stable zap-baseline.py \
     -t "$TARGET" \
-    -J dast-results.json
+    -J "$RAW_REPORT"
+ZAP_EXIT_CODE=$?
+set -e
 
-echo "OWASP ZAP scan (baseline) complete. Reports found at: $REPORTS_DIR/"
+if [[ $ZAP_EXIT_CODE -gt 2 ]]; then
+    echo "ERROR: OWASP ZAP scan failed with runtime error (code $ZAP_EXIT_CODE)" >&2
+    rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    exit $ZAP_EXIT_CODE
+fi
+
+if [[ $ZAP_EXIT_CODE -eq 1 || $ZAP_EXIT_CODE -eq 2 ]]; then
+    echo "OWASP ZAP scan completed with security alerts (exit code $ZAP_EXIT_CODE)."
+else
+    echo "OWASP ZAP scan completed with 0 warnings."
+fi
+
+# Parse raw ZAP report into compact SSDLC dast-results.json to minimize token consumption
+if command -v node >/dev/null 2>&1; then
+    echo "Parsing raw ZAP output into compact SSDLC format ($REPORTS_DIR/dast-results.json)..."
+    node "$SCRIPT_DIR/parse-zap-results.js" -i "$REPORTS_DIR/$RAW_REPORT" -o "$REPORTS_DIR/dast-results.json"
+    # Clean up all intermediate scanner artifacts so only dast-results.json remains
+    rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    echo "Cleaned up intermediate files ($RAW_REPORT, zap.yaml)."
+else
+    echo "WARNING: Node.js executable not found in PATH. Moving raw output to $REPORTS_DIR/dast-results.json"
+    mv "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/dast-results.json"
+    rm -f "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+fi
+
+echo "OWASP ZAP scan (baseline) complete. Results saved at: $REPORTS_DIR/dast-results.json"

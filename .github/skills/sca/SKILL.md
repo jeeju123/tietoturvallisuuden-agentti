@@ -4,7 +4,7 @@ description: Perform a Software Composition Analysis (SCA) to identify and manag
 compatibility: Requires Software Bill of Materials (SBOM) to be available for dependency analysis (e.g., CycloneDX, SPDX)
 metadata:
   author: Juho Salomäki
-  version: '0.1.0'
+  version: "0.1.0"
 ---
 
 ## When to Use
@@ -24,7 +24,6 @@ metadata:
 - **Confirm that Node.js is available** (`node -v`) to run the bundled SCA parsing script `parse-sca-results.js`.
 
 ## Execution
-
 1. Navigate to the root directory of the repository - same level as `.github/`.
 2. Ensure that SBOM `sbom-results.json` exists in `./artefacts/` folder. If not, invoke `/sbom` skill to generate it first. Make sure the SBOM is up-to-date with the latest dependencies before running SCA.
 3. Perform SCA using Trivy and parse findings into `./artefacts/sca-results.json`. Raw Trivy output contains thousands of lines of package trees and scanner metadata (combines to lot of data overall, may often result in hundreds of KBs). To avoid massive context consumption and save token output, run the bundled parser script [parse-sca-results.js](./parse-sca-results.js) to write only structured, relevant findings directly to `./artefacts/sca-results.json`:
@@ -42,16 +41,18 @@ metadata:
    - Library name (`library`)
    - Vulnerability ID (e.g., CVE / GHSA)
    - Severity of the vulnerability (`severity`)
-   - Risk classification per `references/risk-classification.md` (`riskClassification`)
+   - CVSS score, vector, and source (`cvss.score`, `cvss.vector`, `cvss.source`)
+   - Threat intelligence indicators (`isKev`, `epssPercent`), if available
    - Status of the vulnerability (e.g., `fixed`, `affected`)
    - Installed version and fixed version (`installedVersion`, `fixedVersion`)
    - Description (`description`)
    - Actionable remediation (`remediation`)
+   - _Note_: Operational risk classifications and SLAs are not hardcoded into scan artifacts; they are dynamically enriched during `/triage` based on exposure, environment context, and `.github/references/risk-classification.md`.
 5. Prompt user whether they want to continue with remediation based on the findings. If user chooses to proceed, remediate each issue accordingly.
 
 ## Common Rationalizations
 | Rationalization | Reality |
-| ---- | ---- |
+| ------------ | ------------ |
 | "I will run filesystem SCA scan since no SBOM is available" | Always invoke the SBOM skill first to generate the SBOM before running SCA |
 | "I found SBOM and will use it" | Always check if the SBOM is up-to-date and valid before running SCA |
 

@@ -12,6 +12,7 @@ metadata:
 - User wants to ensure their code is secure, and thus no secrets are to be committed.
 - When new modifications (e.g., features, bug fixes) are made (e.g., code, configuration files), to ensure no accidental secret commits will be made
 - During maintenance check, to ensure no secrets have been accidentally committed over time.
+
 ## When NOT to use
 - One-line changes (**However, minor edits and few lines of code must be scanned**)
 - When user is highly confident that no secrets are present and a prior secret detection scan has already been performed in the `artefacts/` folder.
@@ -27,27 +28,31 @@ metadata:
 ## Execution
 1. Navigate to the root directory of the repository - same level as `.github/`.
 2. Run the bundled secret detection script [run-secret-detection.js](./run-secret-detection.js). It executes Gitleaks across git history, staged changes, and working directory, extracts only the necessary fields, deduplicates findings, safely cleans up intermediate files, and saves structured JSON to `./artefacts/secret-detection-results.json`:
-    ```bash
-    node .github/skills/secret-detection/run-secret-detection.js
-    ```
-    *(Note: If only staged files or specific targets are needed, use flags such as `--mode staged` or `--mode dir`)*.
+
+   ```bash
+   node .github/skills/secret-detection/run-secret-detection.js
+   ```
+
+   _(Note: If only staged files or specific targets are needed, use flags such as `--mode staged` or `--mode dir`)_.
 
 3. Review the output from `./artefacts/secret-detection-results.json` for any detected secrets. **DO NOT** read the secrets, or modify the files. User must manually verify and remediate the findings, and let user know if any secrets were found. You should always report to user the following information for each detected secret:
-    - `ruleId` field
-    - Description
-    - Where the secret can be found (e.g., file name/path, line number)
-    - Fingerprint
-    - Commit hash, if available
-    - Date, if available
-    - Author, if available
-    - Remediation steps based on the type of a secret and how to properly handle secrets within the context of the repository.
-    - Any other information you deem relevant for the user to know regarding the detected secret.
+   - `ruleId` field
+   - Description
+   - Where the secret can be found (e.g., file name/path, line number)
+   - Fingerprint
+   - Commit hash, if available
+   - Date, if available
+   - Author, if available
+   - Remediation steps based on the type of a secret and how to properly handle secrets within the context of the repository.
+   - Any other information you deem relevant for the user to know regarding the detected secret.
+   - _Note_: Operational risk classifications (`Blocker` / `Emergency`) and SLAs (`immediate`) are governed dynamically by `.github/references/risk-classification.md` during `/triage`.
 
 ## Common Rationalizations
 | Rationalization | Reality |
-|---|---|
+| ------------ | ------------|
 | "I don't need to run any scans since there are no changes" | Always prefer running a scan to ensure no secrets are accidentally committed, even if there are no apparent changes. |
 | "User wants to make a commit, I only need to scan staged files" | Scanning only staged changes might miss secrets in working directory, that user may neglect later on if not addressed. Always prefer scanning working directory and staged changes. |
+
 ## Red Flags
 - `./artefacts/secret-detection-results.json` is empty, there should at least be `[]` within the file, indicating that no secrets were detected.
 - Gitleaks or Node.js version was not displayed during initial (e.g., `gitleaks version` or `node -v`) command.

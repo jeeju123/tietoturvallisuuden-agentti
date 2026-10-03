@@ -8,12 +8,14 @@ metadata:
 
 ## When to Use
 - User has infrastructure, and deployment related code/configurations within the repository
+
 ## When NOT to use
 - User has local development environment only and does not have infrastructure or deployment related code/configurations within the repository
 - User is building a script as a standalone utility and not as part of a larger infrastructure or deployment setup
 
 ## Prerequisites
-- **Confirm that SBOM tool - Trivy is installed**, and you have access to the commandline tool. The following command can be used to verify the installation, and should return version information if the tool exists on the machine:
+
+- **Confirm that Trivy is installed**, and you have access to the commandline tool. The following command can be used to verify the installation, and should return version information if the tool exists on the machine:
   ```bash
   trivy --version
   ```
@@ -21,57 +23,44 @@ metadata:
 
 - **Confirm that Node.js is available** (`node -v`) to run the bundled pre-deployment parsing and aggregation script `parse-container-scan-results.js`.
 
-## Configuration scan execution
+## Pre-deployment scan execution
 **Use this section when the repository contains infrastructure and deployment related IaC/configurations such as Dockerfiles, Kubernetes manifests, Terraform scripts, or similar.**
 1. Navigate to the root directory of the repository - same level as `.github/`.
-2. Run the following command to scan for misconfigurations. Output is saved to `./artefacts/misconfig-results.json` and parsed into clean findings:
-    - **Recommended workflow (direct pipe & parse)**:
-      ```pwsh
-      trivy config --format json . | node .github/skills/pre-deployment-scan/parse-container-scan-results.js --type misconfig -o ./artefacts/misconfig-results.json
-      ```
-    - **Two-step workflow**:
-      ```pwsh
-      trivy config --format json --output ./artefacts/misconfig-results.json .
-      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --in-place
-      ```
+2. Identify the base container image used in the application (auto-detected from `Dockerfile`, or prompt user if multiple or remote).
+3. Run the unified pre-deployment scan:
 
+   ```bash
+   node .github/skills/pre-deployment-scan/parse-container-scan-results.js
+   ```
 
-## Container scan (local/remote image)
-**Use this section when the repository contains infrastructure and deployment related IaC/configurations such as Dockerfiles, Kubernetes manifests, Terraform scripts, or similar.**
-1. Navigate to the root directory of the repository - same level as `.github/`.
-2. Run the following command to scan for container vulnerabilities. Output shall be saved to `./artefacts/container-scan-base-results.json` file. Replace `<local-image>` with the actual local/remote image reference that was found to be used as base (e.g., `node:20-alpine`).
-    - **Recommended workflow (direct pipe & parse)**:
-      ```pwsh
-      trivy image --format json <local-image> | node .github/skills/pre-deployment-scan/parse-container-scan-results.js --type container -o ./artefacts/container-scan-base-results.json
-      ```
-    - **Two-step workflow**:
-      ```pwsh
-      trivy image --format json --output ./artefacts/container-scan-base-results.json <local-image>
-      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --in-place
-      ```
+   _(Optional: To target a specific base image explicitly, pass `--image <image-tag>`, e.g. `--image node:20-alpine`)_.
 
-## Unified Consolidation (Single Report)
-To combine both misconfigurations and container CVEs into a single canonical file with SSDLC risk classifications and security gate evaluation:
-```pwsh
-node .github/skills/pre-deployment-scan/parse-container-scan-results.js
-```
-This generates `./artefacts/container-security-report.json` containing:
-- Pre-deployment security gate status (`PASSED` vs `FAILED`)
-- Base image OS end-of-life detection
-- Combined severity and risk classification metrics
-- Clean, actionable list of misconfigurations with line numbers and snippets
-- Deduplicated list of container vulnerabilities with available fixed versions and remediations
+   This executes Trivy configuration (IaC/Dockerfile) and container image scans in-memory, strips scanner bloat, evaluates the SSDLC deployment security gate, and writes **only** the single policy-mandated artifact:
+   - `./artefacts/container-scan-results.json` (required post-task check for the Deployment phase per `ssdlc-policy.md`).
+
+4. Review the results from `./artefacts/container-scan-results.json`. Present the findings summary to the user:
+   - Pre-deployment security gate status (`gate.status`: `PASSED` vs `FAILED`, `blockingIssuesCount`, `reasons`)
+   - Base image OS overview (`imageMetadata`: artifact name, OS family/version, EOL status)
+   - Dockerfile & IaC misconfigurations (`misconfigurations`: ID, severity, line, title, resolution)
+   - Container package vulnerabilities (`vulnerabilities`: package, CVE ID, severity, CVSS, fixed version, remediation)
+   - _Note_: Operational risk classifications and SLAs are not hardcoded into scan artifacts; they are dynamically enriched during `/triage` based on exposure, environment context, and `.github/references/risk-classification.md`.
 
 ## Common Rationalizations
+
 | Rationalization | Reality |
-|---|---|
-| "" |  |
+| ----------| --------- |
+| "Pre-deployment scan can be skipped if there is no Dockerfile" | Verify all IaC configurations (Dockerfiles, Kubernetes manifests, compose files, Helm charts, Terraform) before declaring no deployment code. |
+| "Base image vulnerabilities cannot be fixed in application code" | Updating the base image tag in Dockerfile (e.g. to latest patch or Alpine) or updating system packages resolves known base CVEs. |
+| "A high number of OS package CVEs means we cannot deploy" | Run triage on fixable vs non-fixable vulnerabilities, assess reachability and network exposure, and verify gate status. |
 
 ## Red Flags
-- `./artefacts/container-security-report.json` or any other generated Trivy output artefact is empty, Trivy should always produce some fields to the JSON even if there are no available dependencies.
+- `./artefacts/container-scan-results.json` or any other generated Trivy output artefact is empty, Trivy should always produce some fields to the JSON even if there are no available dependencies.
 - Trivy or Node.js version was not displayed during initial (e.g., `trivy --version` or `node --version`) command.
+- Hardcoded secrets or credentials detected in `ENV`
 
 ## Verification
+
 After completing misconfiguration scan, confirm that:
-- [ ] `./artefacts/container-security-report.json` exists and contains the generated pre-deployment security scan results in correct format.
+
+- [ ] `./artefacts/container-scan-results.json` exists and contains the generated pre-deployment security scan results conforming to SSDLC policy.
 - [ ] If any findings were detected, user has been informed and given guidance on how to manage them. Similarly, if no findings were detected, user has been informed accordingly.
