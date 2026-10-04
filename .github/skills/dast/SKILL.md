@@ -69,7 +69,7 @@ After JSON output is generated in `./artefacts/dast-results.json`, review the fi
 ## Red Flags
 - Calling `docker` commands directly from the terminal instead of executing `./.github/skills/dast/owasp-zap-scan.sh`.
 - Terminating, killing, or polling the scan before the 1-3 minute execution completes.
-- Leaving intermediate files (`raw-dast-report.json`, `zap.yaml`) in `artefacts/` folder.
+- Leaving intermediate files (`raw-dast-report.json`, `zap.yaml`) in `artefacts/` folder, unless running script on --keep-temp mode.
 - `./artefacts/dast-results.json` is empty, OWASP ZAP should always produce some fields to the JSON even if scan results are empty.
 - Docker or Node.js is not installed or not functioning correctly.
 - Target application was not running, resulting in connection failure or 0 endpoints scanned.

@@ -20,10 +20,8 @@
  *      trivy config --format json . | node .github/skills/pre-deployment-scan/parse-container-scan-results.js --type misconfig
  *      trivy image --format json node:20-alpine | node .github/skills/pre-deployment-scan/parse-container-scan-results.js --type container
  *
- *   - Output formatting & inspection:
- *      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --markdown
- *      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --summary
- *      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --table
+ *   - Output inspection:
+ *      node .github/skills/pre-deployment-scan/parse-container-scan-results.js --parse-only
  */
 
 const fs = require("fs");
@@ -66,16 +64,13 @@ function stripAnsi(str) {
 
 function parseArgs(args) {
   const options = {
-    misconfigFile: null,
-    containerFile: null,
     inputFile: null,
     outputFile: null,
     format: "json",
     explicitFormat: false,
     minSeverity: null,
     fixedOnly: false,
-    inPlace: false,
-    cleanIntermediate: false,
+    keepTemp: false,
     scan: false,
     parseOnly: false,
     image: null,
@@ -87,39 +82,25 @@ function parseArgs(args) {
     if (arg === "-h" || arg === "--help") {
       printHelp();
       process.exit(0);
-    } else if (arg === "--misconfig") {
-      options.misconfigFile = args[++i];
-    } else if (arg === "--container") {
-      options.containerFile = args[++i];
     } else if (arg === "-i" || arg === "--input") {
       options.inputFile = args[++i];
     } else if (arg === "-o" || arg === "--output") {
       options.outputFile = args[++i];
     } else if (arg === "--format") {
-      options.format = args[++i]?.toLowerCase();
-      options.explicitFormat = true;
-    } else if (arg === "--markdown") {
-      options.format = "markdown";
-      options.explicitFormat = true;
+      const fmt = args[++i]?.toLowerCase();
+      if (fmt === "json") {
+        options.format = fmt;
+        options.explicitFormat = true;
+      }
     } else if (arg === "--json") {
       options.format = "json";
-      options.explicitFormat = true;
-    } else if (arg === "--table") {
-      options.format = "table";
-      options.explicitFormat = true;
-    } else if (arg === "--summary") {
-      options.format = "summary";
       options.explicitFormat = true;
     } else if (arg === "--min-severity") {
       options.minSeverity = args[++i]?.toUpperCase();
     } else if (arg === "--fixed-only") {
       options.fixedOnly = true;
-    } else if (arg === "--in-place") {
-      options.inPlace = true;
-    } else if (arg === "--clean-intermediate" || arg === "--clean-temp") {
-      options.cleanIntermediate = true;
     } else if (arg === "--keep-temp") {
-      options.cleanIntermediate = false;
+      options.keepTemp = true;
     } else if (arg === "--scan") {
       options.scan = true;
     } else if (arg === "--parse-only") {
@@ -147,10 +128,8 @@ function printHelp() {
       End-to-end execution: scans Dockerfile & image directly, writes only artefacts/container-scan-results.json:
         node .github/skills/pre-deployment-scan/parse-container-scan-results.js [options]
 
-      Inspect or format existing report:
-        node .github/skills/pre-deployment-scan/parse-container-scan-results.js --summary
-        node .github/skills/pre-deployment-scan/parse-container-scan-results.js --table
-        node .github/skills/pre-deployment-scan/parse-container-scan-results.js --markdown
+      Inspect existing report:
+        node .github/skills/pre-deployment-scan/parse-container-scan-results.js --parse-only
 
       Direct pipeline streaming:
         trivy config --format json . | node .github/skills/pre-deployment-scan/parse-container-scan-results.js --type misconfig
@@ -162,13 +141,11 @@ function printHelp() {
       --parse-only             Only parse existing container-scan-results.json without running Trivy
       -i, --input <path>       Positional or explicit input file path
       -o, --output <path>      Output file path (default: artefacts/container-scan-results.json)
-      --format <fmt>           json | markdown | table | summary (default: json)
+      --format <fmt>           json (default: json)
       --json                   Shortcut for --format json
-      --markdown               Shortcut for --format markdown
-      --table                  Shortcut for --format table
-      --summary                Shortcut for --format summary
       --min-severity <level>   Filter by minimum severity: CRITICAL, HIGH, MEDIUM, LOW
       --fixed-only             Only include vulnerabilities with an available patch
+      --keep-temp              Preserve intermediate scan files for audit trail
       --type <type>            auto | misconfig | container (for piped STDIN)
       -h, --help               Show this help message
 `);
@@ -637,85 +614,6 @@ function createUnifiedReport(misconfigData, containerData, options = {}) {
   };
 }
 
-function formatMarkdown(report) {
-  const { summary, misconfigurations, vulnerabilities } = report;
-  const lines = [];
-
-  lines.push("# Container & Pre-Deployment Security Report\n");
-  lines.push(
-    `**Gate Status**: ${summary.gate.status === "PASSED" ? "✅ **PASSED**" : "❌ **FAILED (BLOCKED)**"}`,
-  );
-  if (summary.gate.reasons.length > 0) {
-    summary.gate.reasons.forEach((r) => lines.push(`- ⚠️ ${r}`));
-  }
-  lines.push("");
-
-  if (summary.imageMetadata) {
-    lines.push("## Base Image Overview");
-    lines.push(`- **Image**: \`${summary.imageMetadata.artifactName}\``);
-    lines.push(
-      `- **OS**: ${summary.imageMetadata.osFamily} ${summary.imageMetadata.osVersion} ${summary.imageMetadata.isEndOfLife ? "🔴 **(END-OF-LIFE)**" : "🟢 **(SUPPORTED)**"}`,
-    );
-    lines.push(`- **Architecture**: ${summary.imageMetadata.architecture}\n`);
-  }
-
-  lines.push("## Executive Summary");
-  lines.push(`- **Total Findings**: ${summary.totalFindings}`);
-  lines.push(`- **Misconfigurations**: ${summary.misconfigurations.total}`);
-  lines.push(
-    `- **Container Vulnerabilities**: ${summary.vulnerabilities.total} (${summary.vulnerabilities.fixable} fixable) across ${summary.vulnerabilities.packagesAffectedCount || 0} packages`,
-  );
-  lines.push(
-    `- **Severity Breakdown**: CRITICAL: ${summary.combinedSeverity.CRITICAL}, HIGH: ${summary.combinedSeverity.HIGH}, MEDIUM: ${summary.combinedSeverity.MEDIUM}, LOW: ${summary.combinedSeverity.LOW}\n`,
-  );
-
-  // Misconfigurations Section
-  if (misconfigurations.length > 0) {
-    lines.push("## Dockerfile & IaC Misconfigurations\n");
-    lines.push("| # | Check ID | Severity | Line | Title | Resolution |");
-    lines.push("|---|---|---|---|---|---|");
-
-    misconfigurations.forEach((m, idx) => {
-      const loc = m.startLine ? `L${m.startLine}` : "N/A";
-      const safeTitle = m.title.replace(/\|/g, "\\|");
-      const safeRes = m.resolution.replace(/\|/g, "\\|");
-      lines.push(
-        `| ${idx + 1} | [${m.id}](${m.primaryUrl || "#"}) | **${m.severity}** | ${loc} | ${safeTitle} | ${safeRes} |`,
-      );
-    });
-    lines.push("");
-  }
-
-  // Container Vulnerabilities Section
-  if (vulnerabilities.length > 0) {
-    lines.push("## Top Container Image Vulnerabilities\n");
-    lines.push(
-      "| # | Package | CVE ID | Severity | CVSS | Installed | Fixed In | Status | Remediation |",
-    );
-    lines.push("|---|---|---|---|---|---|---|---|---|");
-
-    vulnerabilities.slice(0, 30).forEach((v, idx) => {
-      const link = v.primaryUrl
-        ? `[${v.vulnerabilityId}](${v.primaryUrl})`
-        : v.vulnerabilityId;
-      const cvssStr =
-        v.cvss?.score !== null && v.cvss?.score !== undefined
-          ? String(v.cvss.score)
-          : "N/A";
-      lines.push(
-        `| ${idx + 1} | \`${v.package}\` | ${link} | **${v.severity}** | ${cvssStr} | \`${v.installedVersion}\` | \`${v.fixedVersion}\` | ${v.status} | ${v.remediation} |`,
-      );
-    });
-    if (vulnerabilities.length > 30) {
-      lines.push(
-        `\n*(Showing top 30 of ${vulnerabilities.length} container vulnerabilities. See full JSON for complete list.)*`,
-      );
-    }
-  }
-
-  return lines.join("\n");
-}
-
 function formatSummary(report) {
   const { summary } = report;
   const lines = [
@@ -737,47 +635,6 @@ function formatSummary(report) {
   ].filter(Boolean);
 
   return lines.join("\n");
-}
-
-function formatTable(report) {
-  console.log(
-    `\nContainer Security Summary: ${report.summary.totalFindings} findings (Gate: ${report.summary.gate.status})\n`,
-  );
-
-  if (report.misconfigurations.length > 0) {
-    console.log("--- Misconfigurations ---");
-    console.table(
-      report.misconfigurations.map((m, idx) => ({
-        "#": idx + 1,
-        ID: m.id,
-        Severity: m.severity,
-        Line: m.startLine || "N/A",
-        Title: m.title.length > 35 ? m.title.substring(0, 32) + "..." : m.title,
-        Resolution:
-          m.resolution.length > 35
-            ? m.resolution.substring(0, 32) + "..."
-            : m.resolution,
-      })),
-    );
-  }
-
-  if (report.vulnerabilities.length > 0) {
-    console.log("\n--- Container Vulnerabilities (Top 25) ---");
-    console.table(
-      report.vulnerabilities.slice(0, 25).map((v, idx) => ({
-        "#": idx + 1,
-        Package: v.package,
-        CVE: v.vulnerabilityId,
-        Severity: v.severity,
-        CVSS:
-          v.cvss?.score !== null && v.cvss?.score !== undefined
-            ? v.cvss.score
-            : "N/A",
-        Installed: v.installedVersion,
-        "Fixed In": v.fixedVersion,
-      })),
-    );
-  }
 }
 
 function readJsonFile(filePath) {
@@ -940,6 +797,13 @@ async function main() {
     options.type === "misconfig" || options.type === "container";
 
   if (!isPiped && !options.scan && !options.inputFile) {
+    if (!process.stdin.isTTY) {
+      console.error(
+        "Error: Piped STDIN stream was empty or did not contain valid JSON. Ensure upstream command executed successfully.",
+      );
+      process.exit(1);
+    }
+
     // Check if canonical unified report exists first
     if (
       !misconfigData &&
@@ -975,6 +839,9 @@ async function main() {
     }
   }
 
+  let liveMisconfig = null;
+  let liveContainer = null;
+
   // Execute live Trivy scan only when explicitly requested (--scan) or when no artifacts exist and scan is allowed
   if (
     options.scan ||
@@ -984,7 +851,7 @@ async function main() {
       console.error(
         "› Running Trivy IaC / Dockerfile misconfiguration scan in-memory...",
       );
-      const liveMisconfig = runTrivy(["config", "--format=json", "."]);
+      liveMisconfig = runTrivy(["config", "--format=json", "."]);
       if (liveMisconfig) misconfigData = liveMisconfig;
     }
 
@@ -996,7 +863,7 @@ async function main() {
         console.error(
           `› Running Trivy container scan in-memory for base image: ${targetImage}...`,
         );
-        const liveContainer = runTrivy(["image", "--format=json", targetImage]);
+        liveContainer = runTrivy(["image", "--format=json", targetImage]);
         if (liveContainer) containerData = liveContainer;
       }
     }
@@ -1048,39 +915,22 @@ async function main() {
     options,
   );
 
-  // If --in-place was requested, rewrite the input files with lean stripped versions
-  if (options.inPlace) {
-    if (misconfigData && fs.existsSync(DEFAULT_MISCONFIG_FILE)) {
-      const leanMisconfig = {
-        summary: unifiedReport.summary.misconfigurations,
-        findings: unifiedReport.misconfigurations,
-      };
-      fs.writeFileSync(
-        path.resolve(process.cwd(), DEFAULT_MISCONFIG_FILE),
-        JSON.stringify(leanMisconfig, null, 2),
-        "utf8",
-      );
-      console.error(
-        `[in-place] Updated ${DEFAULT_MISCONFIG_FILE} (${unifiedReport.misconfigurations.length} findings)`,
-      );
+  // Handle intermediate files: preserve for audit trail if --keep-temp, or clean up if !--keep-temp
+  if (options.keepTemp) {
+    if (liveMisconfig) {
+      const absMis = path.resolve(process.cwd(), DEFAULT_MISCONFIG_FILE);
+      fs.mkdirSync(path.dirname(absMis), { recursive: true });
+      fs.writeFileSync(absMis, JSON.stringify(liveMisconfig, null, 2), "utf8");
+      console.error(`Audit trail preserved: ${DEFAULT_MISCONFIG_FILE}`);
     }
-
-    if (containerData && fs.existsSync(DEFAULT_CONTAINER_FILE)) {
-      const leanContainer = {
-        imageMetadata: unifiedReport.summary.imageMetadata,
-        summary: unifiedReport.summary.vulnerabilities,
-        findings: unifiedReport.vulnerabilities,
-      };
-      fs.writeFileSync(
-        path.resolve(process.cwd(), DEFAULT_CONTAINER_FILE),
-        JSON.stringify(leanContainer, null, 2),
-        "utf8",
-      );
-      console.error(
-        `[in-place] Updated ${DEFAULT_CONTAINER_FILE} (${unifiedReport.vulnerabilities.length} findings)`,
-      );
+    if (liveContainer) {
+      const absCont = path.resolve(process.cwd(), DEFAULT_CONTAINER_FILE);
+      fs.mkdirSync(path.dirname(absCont), { recursive: true });
+      fs.writeFileSync(absCont, JSON.stringify(liveContainer, null, 2), "utf8");
+      console.error(`Audit trail preserved: ${DEFAULT_CONTAINER_FILE}`);
     }
-  } else if (options.cleanIntermediate) {
+    console.error("Audit trail preserved: intermediate files retained (--keep-temp).");
+  } else {
     const intermediateFiles = [
       DEFAULT_MISCONFIG_FILE,
       DEFAULT_CONTAINER_FILE,
@@ -1088,10 +938,12 @@ async function main() {
     ];
     for (const relPath of intermediateFiles) {
       const absPath = path.resolve(process.cwd(), relPath);
+      if (options.outputFile && absPath === path.resolve(process.cwd(), options.outputFile)) {
+        continue;
+      }
       if (fs.existsSync(absPath)) {
         try {
           fs.unlinkSync(absPath);
-          console.error(`Cleaned up intermediate artifact: ${relPath}`);
         } catch {
           // ignore cleanup failures
         }
@@ -1099,17 +951,9 @@ async function main() {
     }
   }
 
-  // If explicit formatting was requested (summary, table, markdown) without -o, print directly to stdout
+  // If explicit formatting was requested without -o, print directly to stdout
   if (options.explicitFormat && !options.outputFile) {
-    if (options.format === "markdown") {
-      process.stdout.write(formatMarkdown(unifiedReport) + "\n");
-    } else if (options.format === "summary") {
-      process.stdout.write(formatSummary(unifiedReport) + "\n");
-    } else if (options.format === "table") {
-      formatTable(unifiedReport);
-    } else {
-      process.stdout.write(JSON.stringify(unifiedReport, null, 2) + "\n");
-    }
+    process.stdout.write(JSON.stringify(unifiedReport, null, 2) + "\n");
     return;
   }
 
@@ -1117,11 +961,7 @@ async function main() {
 
   // Target file resolution
   if (options.outputFile) {
-    let contentToWrite = jsonOutput;
-    if (options.format === "markdown")
-      contentToWrite = formatMarkdown(unifiedReport);
-    else if (options.format === "summary")
-      contentToWrite = formatSummary(unifiedReport);
+    const contentToWrite = jsonOutput;
 
     const resolvedOut = path.resolve(process.cwd(), options.outputFile);
     fs.mkdirSync(path.dirname(resolvedOut), { recursive: true });
@@ -1157,7 +997,5 @@ module.exports = {
   extractImageMetadata,
   extractEpssAndKev,
   evaluateGate,
-  formatMarkdown,
   formatSummary,
-  formatTable,
 };

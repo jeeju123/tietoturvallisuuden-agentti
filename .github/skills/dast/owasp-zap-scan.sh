@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET="${1:?Usage: ./script.sh <target_url>}"
+TARGET=""
+KEEP_TEMP=false
+
+for arg in "$@"; do
+    if [[ "$arg" == "--keep-temp" ]]; then
+        KEEP_TEMP=true
+    elif [[ -z "$TARGET" && "$arg" != -* ]]; then
+        TARGET="$arg"
+    fi
+done
+
+if [[ -z "$TARGET" ]]; then
+    echo "Usage: $0 <target_url> [--keep-temp]" >&2
+    exit 1
+fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR" && git rev-parse --show-toplevel)"
@@ -56,7 +70,11 @@ set -e
 
 if [[ $ZAP_EXIT_CODE -gt 2 ]]; then
     echo "ERROR: OWASP ZAP scan failed with runtime error (code $ZAP_EXIT_CODE)" >&2
-    rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    if [[ "$KEEP_TEMP" == false ]]; then
+        rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    else
+        echo "Audit trail preserved: intermediate files retained on error."
+    fi
     exit $ZAP_EXIT_CODE
 fi
 
@@ -69,14 +87,26 @@ fi
 # Parse raw ZAP report into compact SSDLC dast-results.json to minimize token consumption
 if command -v node >/dev/null 2>&1; then
     echo "Parsing raw ZAP output into compact SSDLC format ($REPORTS_DIR/dast-results.json)..."
-    node "$SCRIPT_DIR/parse-zap-results.js" -i "$REPORTS_DIR/$RAW_REPORT" -o "$REPORTS_DIR/dast-results.json"
-    # Clean up all intermediate scanner artifacts so only dast-results.json remains
-    rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
-    echo "Cleaned up intermediate files ($RAW_REPORT, zap.yaml)."
+    EXTRA_PARSE_ARGS=()
+    if [[ "$KEEP_TEMP" == true ]]; then
+        EXTRA_PARSE_ARGS+=("--keep-temp")
+    fi
+    node "$SCRIPT_DIR/parse-zap-results.js" -i "$REPORTS_DIR/$RAW_REPORT" -o "$REPORTS_DIR/dast-results.json" "${EXTRA_PARSE_ARGS[@]}"
+    if [[ "$KEEP_TEMP" == false ]]; then
+        rm -f "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+        echo "Cleaned up intermediate files ($RAW_REPORT, zap.yaml)."
+    else
+        echo "Audit trail preserved: intermediate files kept ($RAW_REPORT, zap.yaml, zap.out, zap.log)."
+    fi
 else
     echo "WARNING: Node.js executable not found in PATH. Moving raw output to $REPORTS_DIR/dast-results.json"
-    mv "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/dast-results.json"
-    rm -f "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    if [[ "$KEEP_TEMP" == true ]]; then
+        cp "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/dast-results.json"
+        echo "Audit trail preserved: intermediate files kept ($RAW_REPORT, zap.yaml, zap.out, zap.log)."
+    else
+        mv "$REPORTS_DIR/$RAW_REPORT" "$REPORTS_DIR/dast-results.json"
+        rm -f "$REPORTS_DIR/zap.yaml" "$REPORTS_DIR/zap.out" "$REPORTS_DIR/zap.log"
+    fi
 fi
 
 echo "OWASP ZAP scan (baseline) complete. Results saved at: $REPORTS_DIR/dast-results.json"

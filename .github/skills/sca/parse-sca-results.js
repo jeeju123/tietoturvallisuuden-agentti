@@ -34,10 +34,10 @@ function parseArgs(args) {
     input: null,
     output: DEFAULT_OUTPUT_FILE,
     stdout: false,
-    format: "json", // Defaults to structured JSON for agents & skills
+    format: "json",
     minSeverity: null,
     fixedOnly: false,
-    pkg: null,
+    keepTemp: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -51,24 +51,19 @@ function parseArgs(args) {
       options.output = args[++i];
     } else if (arg === "--stdout") {
       options.stdout = true;
-    } else if (arg === "--no-save") {
-      options.output = null;
     } else if (arg === "--format") {
-      options.format = args[++i]?.toLowerCase();
-    } else if (arg === "--markdown") {
-      options.format = "markdown";
+      const fmt = args[++i]?.toLowerCase();
+      if (fmt === "json") {
+        options.format = fmt;
+      }
     } else if (arg === "--json") {
       options.format = "json";
-    } else if (arg === "--table") {
-      options.format = "table";
-    } else if (arg === "--summary") {
-      options.format = "summary";
     } else if (arg === "--min-severity") {
       options.minSeverity = args[++i]?.toUpperCase();
     } else if (arg === "--fixed-only") {
       options.fixedOnly = true;
-    } else if (arg === "--pkg") {
-      options.pkg = args[++i]?.toLowerCase();
+    } else if (arg === "--keep-temp") {
+      options.keepTemp = true;
     } else if (!arg.startsWith("-")) {
       options.input = arg;
     }
@@ -85,22 +80,18 @@ function printHelp() {
       Piped directly from Trivy (saves compact findings to artefacts/sca-results.json):
         trivy sbom ./artefacts/sbom-results.json --format json | node .github/skills/sca/parse-sca-results.js
 
-      File input (replaces raw artefacts/sca-results.json in-place with parsed output):
+      File input (replaces raw report in-place with parsed output):
         node .github/skills/sca/parse-sca-results.js ./artefacts/sca-results.json
 
     Options:
       -i, --input <file>        Input JSON path (reads STDIN if piped, defaults to artefacts/sca-results.json)
       -o, --output <file>       Output file destination (default: artefacts/sca-results.json)
-      --stdout                  Also print full output to stdout in addition to saving to file
-      --no-save                 Do not write to file, only print to stdout
-      --format <fmt>            json | markdown | table | summary (default: json)
+      --stdout                  Print output to stdout
+      --format <fmt>            json (default: json)
       --json                    Shortcut for --format json
-      --markdown                Shortcut for --format markdown
-      --table                   Shortcut for --format table
-      --summary                 Shortcut for --format summary
       --min-severity <level>    Minimum severity: CRITICAL, HIGH, MEDIUM, LOW
       --fixed-only              Only list vulnerabilities with available fixes
-      --pkg <name>              Filter by package name
+      --keep-temp               Preserve intermediate scan files for audit trail
       -h, --help                Show this help message
 `);
 }
@@ -189,13 +180,35 @@ function processScaResults(data, options) {
         (f) => f.fixedVersion && f.fixedVersion !== "None available",
       );
     }
-    if (options.pkg) {
-      filteredFindings = filteredFindings.filter((f) =>
-        f.library.toLowerCase().includes(options.pkg),
-      );
+
+    const affectedPkgs = new Set(filteredFindings.map((f) => f.library).filter(Boolean));
+    const recomputedSummary = {
+      totalFindings: filteredFindings.length,
+      fixableFindings: filteredFindings.filter(
+        (f) => f.fixedVersion && f.fixedVersion !== "None available",
+      ).length,
+      packagesAffectedCount: affectedPkgs.size,
+      packagesAffected: Array.from(affectedPkgs),
+      bySeverity: {
+        CRITICAL: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0,
+        UNKNOWN: 0,
+      },
+    };
+
+    for (const f of filteredFindings) {
+      const sev = (f.severity || "UNKNOWN").toUpperCase();
+      if (recomputedSummary.bySeverity[sev] !== undefined) {
+        recomputedSummary.bySeverity[sev]++;
+      } else {
+        recomputedSummary.bySeverity.UNKNOWN++;
+      }
     }
+
     return {
-      summary: data.summary,
+      summary: recomputedSummary,
       findings: filteredFindings,
     };
   }
@@ -231,7 +244,6 @@ function processScaResults(data, options) {
       if (options.fixedOnly && !v.FixedVersion) continue;
 
       const pkgName = v.PkgName || "unknown";
-      if (options.pkg && !pkgName.toLowerCase().includes(options.pkg)) continue;
 
       const cvss = extractCvss(v);
       const { isKev, epssPercent } = extractEpssAndKev(v);
@@ -293,107 +305,6 @@ function processScaResults(data, options) {
   };
 }
 
-function formatMarkdown({ findings, summary }) {
-  const lines = [];
-
-  lines.push(
-    "# Software Composition Analysis (SCA) - Relevant Findings Summary\n",
-  );
-  lines.push("## Overview");
-  lines.push(`- **Total Vulnerabilities**: ${summary.totalFindings}`);
-  lines.push(
-    `- **Fixable Vulnerabilities**: ${summary.fixableFindings} / ${summary.totalFindings}`,
-  );
-  lines.push(
-    `- **Distinct Packages Affected**: ${summary.packagesAffectedCount}`,
-  );
-  lines.push(
-    `- **Severity Breakdown**: CRITICAL: ${summary.bySeverity.CRITICAL}, HIGH: ${summary.bySeverity.HIGH}, MEDIUM: ${summary.bySeverity.MEDIUM}, LOW: ${summary.bySeverity.LOW}\n`,
-  );
-
-  if (findings.length === 0) {
-    lines.push("No vulnerabilities found matching the specified criteria.");
-    return lines.join("\n");
-  }
-
-  lines.push("## Vulnerability Findings Table\n");
-  lines.push(
-    "| # | Library | Vulnerability ID | Severity | CVSS | Installed | Fixed In | Status | Description |",
-  );
-  lines.push("|---|---|---|---|---|---|---|---|---|");
-
-  findings.forEach((f, idx) => {
-    const titleTrunc =
-      f.description.length > 80
-        ? f.description.substring(0, 77) + "..."
-        : f.description;
-    const safeTitle = titleTrunc.replace(/\|/g, "\\|");
-    const vulnLink = f.url
-      ? `[${f.vulnerabilityId}](${f.url})`
-      : f.vulnerabilityId;
-    const cvssStr =
-      f.cvss?.score !== null && f.cvss?.score !== undefined
-        ? String(f.cvss.score)
-        : "N/A";
-    lines.push(
-      `| ${idx + 1} | \`${f.library}\` | ${vulnLink} | **${f.severity}** | ${cvssStr} | \`${f.installedVersion}\` | \`${f.fixedVersion}\` | ${f.status} | ${safeTitle} |`,
-    );
-  });
-
-  lines.push("\n## Actionable Remediations\n");
-  findings.forEach((f, idx) => {
-    lines.push(
-      `### ${idx + 1}. \`${f.library}\` - ${f.vulnerabilityId} (${f.severity})`,
-    );
-    lines.push(`- **Description**: ${f.description}`);
-    lines.push(
-      `- **Current Version**: \`${f.installedVersion}\` | **Fixed Version**: \`${f.fixedVersion}\``,
-    );
-    if (f.cvss?.score !== null && f.cvss?.score !== undefined) {
-      lines.push(
-        `- **CVSS Score**: ${f.cvss.score} (${f.cvss.source || "N/A"})`,
-      );
-    }
-    if (f.isKev) lines.push(`- **KEV Listed**: Yes (Active Exploit)`);
-    if (f.epssPercent !== null)
-      lines.push(`- **EPSS Probability**: ${f.epssPercent}%`);
-    lines.push(`- **Remediation**: ${f.remediation}`);
-    if (f.url) lines.push(`- **Advisory**: ${f.url}`);
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function formatTable({ findings, summary }) {
-  console.log(
-    `\nSCA Summary: ${summary.totalFindings} findings (${summary.fixableFindings} fixable) across ${summary.packagesAffectedCount} packages`,
-  );
-  console.log(
-    `Severities: CRITICAL=${summary.bySeverity.CRITICAL} HIGH=${summary.bySeverity.HIGH} MEDIUM=${summary.bySeverity.MEDIUM} LOW=${summary.bySeverity.LOW}\n`,
-  );
-
-  const rows = findings.map((f, idx) => ({
-    "#": idx + 1,
-    Library: f.library,
-    ID: f.vulnerabilityId,
-    Severity: f.severity,
-    CVSS:
-      f.cvss?.score !== null && f.cvss?.score !== undefined
-        ? f.cvss.score
-        : "N/A",
-    Installed: f.installedVersion,
-    "Fixed In": f.fixedVersion,
-    Remediation:
-      f.fixedVersion !== "None available"
-        ? `Update to ${f.fixedVersion}`
-        : "No fix",
-  }));
-
-  console.table(rows);
-  return "";
-}
-
 function formatSummaryOnly({ summary }) {
   const lines = [
     "SCA Vulnerability Summary",
@@ -439,7 +350,11 @@ function readInput(options) {
         if (buffer.trim()) {
           resolve(buffer);
         } else {
-          fallbackFile(resolve, reject);
+          reject(
+            new Error(
+              "Piped STDIN stream was empty. Ensure upstream command executed successfully without errors.",
+            ),
+          );
         }
       });
       process.stdin.on("error", (err) => reject(err));
@@ -497,7 +412,7 @@ async function main() {
       "\nTip: If piping from Trivy, ensure Trivy succeeded without errors:",
     );
     console.error(
-      "  trivy sbom ./artefacts/sbom-results.json --format json | node .github/skills/sca/scripts/parse-sca-results.js",
+      "  trivy sbom ./artefacts/sbom-results.json --format json | node .github/skills/sca/parse-sca-results.js",
     );
 
     process.exit(1);
@@ -505,41 +420,13 @@ async function main() {
 
   const processed = processScaResults(jsonData, options);
 
-  let outputText = "";
-  if (options.format === "json") {
-    outputText = JSON.stringify(processed, null, 2);
-  } else if (options.format === "summary") {
-    outputText = formatSummaryOnly(processed);
-  } else if (options.format === "table") {
-    formatTable(processed);
-    if (options.output) {
-      const resolvedOutputPath = path.resolve(process.cwd(), options.output);
-      fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
-
-      const fileData = resolvedOutputPath.endsWith(".md")
-        ? formatMarkdown(processed)
-        : JSON.stringify(processed, null, 2);
-      fs.writeFileSync(resolvedOutputPath, fileData, "utf8");
-
-      const bytes = Buffer.byteLength(fileData, "utf8");
-      console.error(
-        `Parsed SCA results written to: ${options.output} (${processed.summary.totalFindings} findings, ${(bytes / 1024).toFixed(1)} KB)`,
-      );
-    }
-    return;
-  } else if (options.format === "markdown") {
-    outputText = formatMarkdown(processed);
-  } else {
-    outputText = JSON.stringify(processed, null, 2);
-  }
+  const outputText = JSON.stringify(processed, null, 2);
 
   if (options.output) {
     const resolvedOutputPath = path.resolve(process.cwd(), options.output);
     fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
 
-    const fileData = resolvedOutputPath.endsWith(".md")
-      ? formatMarkdown(processed)
-      : JSON.stringify(processed, null, 2);
+    const fileData = JSON.stringify(processed, null, 2);
     fs.writeFileSync(resolvedOutputPath, fileData, "utf8");
 
     const bytes = Buffer.byteLength(fileData, "utf8");
@@ -548,11 +435,45 @@ async function main() {
     );
   }
 
-  if (!options.output || options.stdout || options.format !== "json") {
+  // Handle intermediate files cleanup or retention
+  const intermediateFiles = [
+    "artefacts/raw-sca-results.json",
+    "raw-sca-results.json",
+  ];
+
+  if (!options.keepTemp) {
+    for (const relPath of intermediateFiles) {
+      const absPath = path.resolve(process.cwd(), relPath);
+      if (options.output && absPath === path.resolve(process.cwd(), options.output)) {
+        continue;
+      }
+      if (fs.existsSync(absPath)) {
+        try {
+          fs.unlinkSync(absPath);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } else {
+    console.error("Audit trail preserved: intermediate files retained (--keep-temp).");
+  }
+
+  if (!options.output || options.stdout) {
     process.stdout.write(outputText + "\n");
   } else {
     console.log(formatSummaryOnly(processed));
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  processScaResults,
+  extractCvss,
+  extractEpssAndKev,
+  generateRemediation,
+  formatSummaryOnly,
+};

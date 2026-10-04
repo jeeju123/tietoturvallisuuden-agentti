@@ -12,6 +12,15 @@
  * Saves compact, relevant findings directly to `artefacts/dast-results.json` (or specified --output),
  * reducing token consumption by 80-90%+ while preserving 100% of actionable vulnerability data.
  *
+ * Usage:
+ *   Direct pipe from ZAP / Docker:
+ *     docker run ... zaproxy/zap-stable zap-baseline.py ... -J - | node .github/skills/dast/parse-zap-results.js
+ *
+ *   File input:
+ *     node .github/skills/dast/parse-zap-results.js ./artefacts/baseline-report.json
+ *
+ *   Automatic fallback:
+ *     node .github/skills/dast/parse-zap-results.js
  */
 
 const fs = require("fs");
@@ -75,14 +84,10 @@ function parseArgs(args) {
     input: null,
     output: DEFAULT_OUTPUT_FILE,
     stdout: false,
-    format: "json", // json | markdown | table | summary
+    format: "json",
     minSeverity: null,
-    minConfidence: null,
-    ignoreInfo: false,
-    site: null,
-    cwe: null,
     maxInstances: 5,
-    allInstances: false,
+    keepTemp: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -96,36 +101,22 @@ function parseArgs(args) {
       options.output = args[++i];
     } else if (arg === "--stdout") {
       options.stdout = true;
-    } else if (arg === "--no-save") {
-      options.output = null;
     } else if (arg === "--format") {
-      options.format = args[++i]?.toLowerCase();
-    } else if (arg === "--markdown") {
-      options.format = "markdown";
+      const fmt = args[++i]?.toLowerCase();
+      if (fmt === "json") {
+        options.format = fmt;
+      }
     } else if (arg === "--json") {
       options.format = "json";
-    } else if (arg === "--table") {
-      options.format = "table";
-    } else if (arg === "--summary") {
-      options.format = "summary";
     } else if (arg === "--min-severity") {
       options.minSeverity = args[++i]?.toUpperCase();
-    } else if (arg === "--min-confidence") {
-      options.minConfidence = args[++i]?.toUpperCase();
-    } else if (arg === "--ignore-info" || arg === "--no-info") {
-      options.ignoreInfo = true;
-    } else if (arg === "--site") {
-      options.site = args[++i]?.toLowerCase();
-    } else if (arg === "--cwe") {
-      options.cwe = args[++i]?.toUpperCase().replace(/^CWE-?/i, "");
     } else if (arg === "--max-instances") {
       const parsed = parseInt(args[++i], 10);
       if (!isNaN(parsed) && parsed >= 0) {
         options.maxInstances = parsed;
       }
-    } else if (arg === "--all-instances") {
-      options.allInstances = true;
-      options.maxInstances = Infinity;
+    } else if (arg === "--keep-temp") {
+      options.keepTemp = true;
     } else if (!arg.startsWith("-")) {
       options.input = arg;
     }
@@ -138,23 +129,25 @@ function printHelp() {
   console.log(`
     parse-zap-results.js: Parse OWASP ZAP DAST scan output into compact SSDLC findings
 
+    Usage:
+      Piped directly from ZAP / Docker:
+        docker run ... zap-baseline.py ... -J - | node .github/skills/dast/parse-zap-results.js
+
+      File input:
+        node .github/skills/dast/parse-zap-results.js ./artefacts/baseline-report.json
+
+      Automatic fallback (inspects default candidate files in artefacts/):
+        node .github/skills/dast/parse-zap-results.js
+
     Options:
       -i, --input <file>        Input ZAP JSON path (reads STDIN if piped, defaults to auto-detected report)
       -o, --output <file>       Output file destination (default: artefacts/dast-results.json)
-      --stdout                  Print full output to stdout in addition to saving to file
-      --no-save                 Do not write to file, only print to stdout
-      --format <fmt>            json | markdown | table | summary (default: json)
+      --stdout                  Print output to stdout
+      --format <fmt>            json (default: json)
       --json                    Shortcut for --format json
-      --markdown                Shortcut for --format markdown
-      --table                   Shortcut for --format table
-      --summary                 Shortcut for --format summary
       --min-severity <level>    Minimum severity: CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL
-      --min-confidence <level>  Minimum confidence: HIGH, MEDIUM, LOW
-      --ignore-info, --no-info  Exclude Informational alerts from output
-      --site <hostname>         Filter findings by site URL or host
-      --cwe <id>                Filter findings by CWE ID (e.g. 693 or CWE-693)
       --max-instances <n>       Max representative instance samples to retain per alert (default: 5)
-      --all-instances           Retain all instances without sampling truncation
+      --keep-temp               Preserve intermediate scan files for audit trail
       -h, --help                Show this help message
 `);
 }
@@ -321,33 +314,6 @@ function processZapResults(data, options) {
         (f) => (SEVERITY_ORDER[f.severity] ?? 0) >= minSeverityVal,
       );
     }
-    if (options.ignoreInfo) {
-      filteredFindings = filteredFindings.filter(
-        (f) => f.severity !== "INFORMATIONAL",
-      );
-    }
-    if (options.minConfidence) {
-      const minConfVal = CONFIDENCE_ORDER[options.minConfidence] ?? 0;
-      filteredFindings = filteredFindings.filter(
-        (f) =>
-          (CONFIDENCE_ORDER[(f.confidence || "").toUpperCase()] ?? 0) >=
-          minConfVal,
-      );
-    }
-    if (options.cwe) {
-      filteredFindings = filteredFindings.filter(
-        (f) =>
-          f.cwe &&
-          (f.cwe.id === `CWE-${options.cwe}` || f.cwe.number === options.cwe),
-      );
-    }
-    if (options.site) {
-      filteredFindings = filteredFindings.filter((f) =>
-        (f.affectedSites || []).some((s) =>
-          s.toLowerCase().includes(options.site),
-        ),
-      );
-    }
 
     const recomputedStats = {
       totalFindings: filteredFindings.length,
@@ -432,9 +398,6 @@ function processZapResults(data, options) {
   const minSeverityVal = options.minSeverity
     ? (SEVERITY_ORDER[options.minSeverity] ?? 0)
     : 0;
-  const minConfVal = options.minConfidence
-    ? (CONFIDENCE_ORDER[options.minConfidence] ?? 0)
-    : 0;
 
   for (const site of rawSites) {
     const siteName = site["@name"] || site["@host"] || "Unknown Site";
@@ -456,18 +419,6 @@ function processZapResults(data, options) {
       // Filtering checks
       const severityVal = SEVERITY_ORDER[severity] ?? 0;
       if (severityVal < minSeverityVal) continue;
-      if (options.ignoreInfo && severity === "INFORMATIONAL") continue;
-
-      const confVal = CONFIDENCE_ORDER[confidence.toUpperCase()] ?? 0;
-      if (confVal < minConfVal) continue;
-
-      const cweRaw = alert.cweid ? String(alert.cweid).trim() : "";
-      const cweNum =
-        cweRaw && cweRaw !== "-1" && cweRaw !== "0" ? cweRaw : null;
-      if (options.cwe && cweNum !== options.cwe) continue;
-
-      if (options.site && !siteName.toLowerCase().includes(options.site))
-        continue;
 
       // Instances
       const rawInstances = Array.isArray(alert.instances)
@@ -493,6 +444,9 @@ function processZapResults(data, options) {
       } else {
         // Create new alert entry
         const refUrls = extractUrls(alert.reference);
+        const cweRaw = alert.cweid ? String(alert.cweid).trim() : "";
+        const cweNum =
+          cweRaw && cweRaw !== "-1" && cweRaw !== "0" ? cweRaw : null;
         const wascRaw = alert.wascid ? String(alert.wascid).trim() : "";
         const wascNum =
           wascRaw && wascRaw !== "-1" && wascRaw !== "0" ? wascRaw : null;
@@ -599,16 +553,13 @@ function processZapResults(data, options) {
         sampleInstances.push(cleaned);
       }
 
-      if (
-        !options.allInstances &&
-        sampleInstances.length >= options.maxInstances
-      ) {
+      if (sampleInstances.length >= options.maxInstances) {
         break;
       }
     }
 
     // If sampling was applied, record truncation metadata
-    if (!options.allInstances && rawList.length > sampleInstances.length) {
+    if (rawList.length > sampleInstances.length) {
       finding.instancesTruncated = true;
       finding.sampleCount = sampleInstances.length;
     } else {
@@ -620,7 +571,7 @@ function processZapResults(data, options) {
 
     // Cap affectedUrls list to 10 for token safety if large, recording total count
     finding.totalUniqueUrls = finding.affectedUrls.length;
-    if (!options.allInstances && finding.affectedUrls.length > 10) {
+    if (finding.affectedUrls.length > 10) {
       finding.affectedUrlsSample = finding.affectedUrls.slice(0, 10);
       delete finding.affectedUrls;
     }
@@ -648,141 +599,10 @@ function processZapResults(data, options) {
       totalFindings: stats.totalFindings,
       totalInstances: stats.totalInstances,
       bySeverity: stats.bySeverity,
-      byRiskClass: stats.byRiskClass,
       byConfidence: stats.byConfidence,
     },
     findings,
   };
-}
-
-/**
- * Format findings as comprehensive GitHub-flavored Markdown
- */
-function formatMarkdown({ findings, summary, scan }) {
-  const lines = [];
-
-  lines.push(
-    "# Dynamic Application Security Testing (DAST) - Findings Summary\n",
-  );
-  lines.push("## Scan Overview");
-  lines.push(`- **Scanner**: ${scan?.program || "OWASP ZAP"}`);
-  lines.push(`- **Generated**: ${scan?.generated || "N/A"}`);
-  lines.push(`- **Target Sites**: ${(scan?.sites || []).join(", ") || "N/A"}`);
-  if (scan?.endpointsScanned) {
-    lines.push(`- **Endpoints Scanned**: ${scan.endpointsScanned}`);
-  }
-  lines.push(
-    `- **Total Vulnerability Rules Triggered**: ${summary.totalFindings}`,
-  );
-  lines.push(`- **Total Instances Detected**: ${summary.totalInstances}`);
-  lines.push(
-    `- **Severity Breakdown**: CRITICAL: ${summary.bySeverity.CRITICAL}, HIGH: ${summary.bySeverity.HIGH}, MEDIUM: ${summary.bySeverity.MEDIUM}, LOW: ${summary.bySeverity.LOW}, INFORMATIONAL: ${summary.bySeverity.INFORMATIONAL}\n`,
-  );
-
-  if (findings.length === 0) {
-    lines.push(
-      "No DAST vulnerabilities found matching the specified criteria.",
-    );
-    return lines.join("\n");
-  }
-
-  lines.push("## Vulnerability Findings Table\n");
-  lines.push(
-    "| # | Alert Name | Severity | CVSS | Confidence | Instances | CWE | Actionable Solution |",
-  );
-  lines.push("|---|---|---|---|---|---|---|---|");
-
-  findings.forEach((f, idx) => {
-    const cweStr = f.cwe ? `[${f.cwe.id}](${f.cwe.url})` : "N/A";
-    const solTrunc =
-      f.solution.length > 80 ? f.solution.substring(0, 77) + "..." : f.solution;
-    const safeSol = solTrunc.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
-    const safeName = f.name.replace(/\|/g, "\\|");
-    const cvssStr =
-      f.cvss?.score !== null && f.cvss?.score !== undefined
-        ? String(f.cvss.score)
-        : "N/A";
-    lines.push(
-      `| ${idx + 1} | **${safeName}** | ${f.severity} | ${cvssStr} | ${f.confidence} | ${f.totalInstances} | ${cweStr} | ${safeSol} |`,
-    );
-  });
-
-  lines.push("\n## Actionable Remediations\n");
-  findings.forEach((f, idx) => {
-    lines.push(`### ${idx + 1}. ${f.name} (${f.severity})`);
-    lines.push(
-      `- **Alert Ref / Plugin ID**: \`${f.alertRef}\` (Plugin: \`${f.pluginId}\`)`,
-    );
-    lines.push(
-      `- **Confidence**: ${f.confidence} | **Occurrences**: ${f.totalInstances} instance(s)`,
-    );
-    if (f.cvss)
-      lines.push(
-        `- **Normalized CVSS Score**: ${f.cvss.score} (Range: ${f.cvss.range})`,
-      );
-    if (f.cwe)
-      lines.push(`- **CWE**: [${f.cwe.id}: ${f.cwe.url}](${f.cwe.url})`);
-    if (f.wasc) lines.push(`- **WASC**: ${f.wasc.id}`);
-    lines.push(`- **Description**: ${f.description}`);
-    lines.push(`- **Remediation**: ${f.remediation}`);
-    if (f.primaryUrl) lines.push(`- **Primary Reference**: ${f.primaryUrl}`);
-
-    if (f.instances && f.instances.length > 0) {
-      lines.push(
-        `- **Representative Sample Instances** (${f.instances.length} of ${f.totalInstances}):`,
-      );
-      f.instances.forEach((inst) => {
-        const detailParts = [];
-        if (inst.method) detailParts.push(inst.method);
-        if (inst.param) detailParts.push(`param: \`${inst.param}\``);
-        if (inst.evidence) detailParts.push(`evidence: \`${inst.evidence}\``);
-        const detailStr =
-          detailParts.length > 0 ? ` (${detailParts.join(", ")})` : "";
-        lines.push(`  - \`${inst.uri}\`${detailStr}`);
-      });
-    }
-
-    if (f.otherInfo) {
-      lines.push(
-        `- **Additional Context**: ${f.otherInfo.replace(/[\r\n]+/g, " ")}`,
-      );
-    }
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-/**
- * Format summary for console table
- */
-function formatTable({ findings, summary, scan }) {
-  console.log(
-    `\nDAST Scan Summary: ${summary.totalFindings} alert rule(s) triggered (${summary.totalInstances} instances) across ${scan?.sites?.length || 1} site(s)`,
-  );
-  console.log(
-    `Severities: CRITICAL=${summary.bySeverity.CRITICAL} HIGH=${summary.bySeverity.HIGH} MEDIUM=${summary.bySeverity.MEDIUM} LOW=${summary.bySeverity.LOW} INFO=${summary.bySeverity.INFORMATIONAL}\n`,
-  );
-
-  const rows = findings.map((f, idx) => ({
-    "#": idx + 1,
-    Alert: f.name.length > 35 ? f.name.substring(0, 32) + "..." : f.name,
-    Severity: f.severity,
-    CVSS:
-      f.cvss?.score !== null && f.cvss?.score !== undefined
-        ? f.cvss.score
-        : "N/A",
-    Conf: f.confidence,
-    Count: f.totalInstances,
-    CWE: f.cwe ? f.cwe.id : "N/A",
-    Remediation:
-      (f.solution || "Review advisory").length > 35
-        ? (f.solution || "Review advisory").substring(0, 32) + "..."
-        : f.solution || "Review advisory",
-  }));
-
-  console.table(rows);
-  return "";
 }
 
 /**
@@ -849,7 +669,11 @@ function readInput(options) {
         if (buffer.trim()) {
           resolve({ content: buffer, source: "STDIN" });
         } else {
-          fallbackCandidateFiles(resolve, reject);
+          reject(
+            new Error(
+              "Piped STDIN stream was empty. Ensure upstream command executed successfully without errors.",
+            ),
+          );
         }
       });
       process.stdin.on("error", (err) => reject(err));
@@ -920,28 +744,43 @@ async function main() {
 
   const processed = processZapResults(jsonData, options);
 
-  let outputText = "";
-  if (options.format === "json") {
-    outputText = JSON.stringify(processed, null, 2);
-  } else if (options.format === "summary") {
-    outputText = formatSummaryOnly(processed);
-  } else if (options.format === "table") {
-    formatTable(processed);
-    if (options.output) {
-      writeOutputFile(options.output, processed);
-    }
-    return;
-  } else if (options.format === "markdown") {
-    outputText = formatMarkdown(processed);
-  } else {
-    outputText = JSON.stringify(processed, null, 2);
-  }
+  const outputText = JSON.stringify(processed, null, 2);
 
   if (options.output) {
     writeOutputFile(options.output, processed);
   }
 
-  if (!options.output || options.stdout || options.format !== "json") {
+  // Handle intermediate files cleanup or retention
+  const intermediateFiles = [
+    "artefacts/raw-dast-report.json",
+    "artefacts/zap.yaml",
+    "artefacts/zap.out",
+    "artefacts/zap.log",
+    "raw-dast-report.json",
+    "zap.yaml",
+    "zap.out",
+    "zap.log",
+  ];
+
+  if (!options.keepTemp) {
+    for (const relPath of intermediateFiles) {
+      const absPath = path.resolve(process.cwd(), relPath);
+      if (options.output && absPath === path.resolve(process.cwd(), options.output)) {
+        continue;
+      }
+      if (fs.existsSync(absPath)) {
+        try {
+          fs.unlinkSync(absPath);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } else {
+    console.error("Audit trail preserved: intermediate files retained (--keep-temp).");
+  }
+
+  if (!options.output || options.stdout) {
     process.stdout.write(outputText + "\n");
   } else {
     console.log(formatSummaryOnly(processed));
@@ -952,10 +791,7 @@ function writeOutputFile(outputPath, processed) {
   const resolvedOutputPath = path.resolve(process.cwd(), outputPath);
   fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
 
-  const fileData = resolvedOutputPath.endsWith(".md")
-    ? formatMarkdown(processed)
-    : JSON.stringify(processed, null, 2);
-
+  const fileData = JSON.stringify(processed, null, 2);
   fs.writeFileSync(resolvedOutputPath, fileData, "utf8");
 
   const bytes = Buffer.byteLength(fileData, "utf8");
@@ -975,4 +811,5 @@ module.exports = {
   normalizeSeverity,
   normalizeConfidence,
   cleanInstance,
+  formatSummaryOnly,
 };

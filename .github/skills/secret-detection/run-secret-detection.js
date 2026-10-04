@@ -17,7 +17,6 @@
  *   --parse-only                     Only parse and combine existing intermediate files, do not run gitleaks
  *   --keep-temp                      Do not delete intermediate temp files
  *   --redact                         Redact matched secret strings (default: true)
- *   --summary                        Print concise summary to stdout
  *   -h, --help                       Show help message
  */
 
@@ -31,8 +30,7 @@ function parseArgs(args) {
     output: 'artefacts/secret-detection-results.json',
     parseOnly: false,
     keepTemp: false,
-    redact: true,
-    summary: false
+    redact: true
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -44,14 +42,17 @@ function parseArgs(args) {
       options.mode = args[++i]?.toLowerCase() || 'all';
     } else if (arg === '-o' || arg === '--output') {
       options.output = args[++i];
+    } else if (arg === '--format') {
+      const fmt = args[++i]?.toLowerCase();
+      if (fmt === 'json') options.format = 'json';
+    } else if (arg === '--json') {
+      options.format = 'json';
     } else if (arg === '--parse-only') {
       options.parseOnly = true;
     } else if (arg === '--keep-temp') {
       options.keepTemp = true;
     } else if (arg === '--no-redact') {
       options.redact = false;
-    } else if (arg === '--summary') {
-      options.summary = true;
     }
   }
 
@@ -68,9 +69,10 @@ function printHelp() {
     Options:
       --mode <all|history|staged|dir>  Scan mode: history, staged, dir, or all (default: all)
       -o, --output <file>              Output path (default: artefacts/secret-detection-results.json)
+      --format <fmt>                   json (default: json)
+      --json                           Shortcut for --format json
       --parse-only                     Only combine/clean existing temp files without running gitleaks
       --keep-temp                      Keep intermediate files (history-results.json, etc.)
-      --summary                        Print concise text summary to stdout
       -h, --help                       Show this help message
 `);
 }
@@ -106,7 +108,8 @@ function runGitleaksCommand(args) {
 
     // Gitleaks exit codes: 0 = no leaks, 1 = leaks found, >1 = runtime error
     if (result.status > 1) {
-      console.error(`Gitleaks execution warning/error (code ${result.status}):`, (result.stderr || result.stdout || '').trim());
+      console.error(`Gitleaks runtime error (code ${result.status}):`, (result.stderr || result.stdout || '').trim());
+      process.exit(result.status);
     }
 
     return result;
@@ -162,23 +165,38 @@ function main() {
     fs.mkdirSync(artefactsDir, { recursive: true });
   }
 
-  const tempFiles = [
+  const allTempFiles = [
     { key: 'history', path: path.resolve(artefactsDir, 'history-results.json') },
     { key: 'staged', path: path.resolve(artefactsDir, 'staged-results.json') },
     { key: 'dir', path: path.resolve(artefactsDir, 'dir-results.json') }
   ];
 
+  const activeTempFiles = allTempFiles.filter(
+    (f) => options.mode === 'all' || options.mode === f.key
+  );
+
   if (!options.parseOnly) {
+    // Clean stale temp files from previous or interrupted scans before executing
+    for (const { path: filePath } of activeTempFiles) {
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          // ignore cleanup failures
+        }
+      }
+    }
+
     const redactFlag = options.redact ? ['--redact'] : [];
 
     if (options.mode === 'all' || options.mode === 'history') {
-      const historyFile = tempFiles.find(f => f.key === 'history').path;
+      const historyFile = allTempFiles.find(f => f.key === 'history').path;
 
       runGitleaksCommand(['git', '-v', '--report-format=json', `--report-path=${historyFile}`, ...redactFlag]);
     }
 
     if (options.mode === 'all' || options.mode === 'staged') {
-      const stagedFile = tempFiles.find(f => f.key === 'staged').path;
+      const stagedFile = allTempFiles.find(f => f.key === 'staged').path;
       if (hasStagedChanges()) {
         runGitleaksCommand(['protect', '-v', '--staged', '--report-format=json', `--report-path=${stagedFile}`, ...redactFlag]);
       } else {
@@ -187,18 +205,18 @@ function main() {
     }
 
     if (options.mode === 'all' || options.mode === 'dir') {
-      const dirFile = tempFiles.find(f => f.key === 'dir').path;
+      const dirFile = allTempFiles.find(f => f.key === 'dir').path;
 
       runGitleaksCommand(['dir', '-v', '--report-format=json', `--report-path=${dirFile}`, '.', ...redactFlag]);
     }
   }
 
-  // Combine and deduplicate findings across runs
+  // Combine and deduplicate findings across active runs
   const combinedFindings = [];
   const seenFingerprints = new Set();
   const summaryByRule = {};
 
-  for (const { key, path: filePath } of tempFiles) {
+  for (const { key, path: filePath } of activeTempFiles) {
     const findings = loadAndParseJsonFile(filePath);
     for (const f of findings) {
       const cleaned = cleanFinding(f, key);
@@ -219,7 +237,7 @@ function main() {
 
   // Clean up temporary files unless --keep-temp was specified
   if (!options.keepTemp) {
-    for (const { path: filePath } of tempFiles) {
+    for (const { path: filePath } of allTempFiles) {
       if (fs.existsSync(filePath)) {
         try {
           fs.unlinkSync(filePath);
