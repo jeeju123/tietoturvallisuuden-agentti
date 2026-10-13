@@ -64,6 +64,7 @@ Post-task checks:
 ### 2. Design
 Pre-task checks:
 - [ ] Artefact folder `artefacts/` exists
+- [ ] Artefact `SEC-SPEC.md` exists in `artefacts/` folder
 
 Post-task checks:
 - [ ] `decomposition-results.json` exists in `artefacts/` folder
@@ -136,6 +137,3 @@ When a new vulnerability found. Follow the steps:
 
 ## Autonomous execution policy
 Only tools and commands that have **low blast-radius**, **clear**, **deterministic** and **test-verifiable results** can be run fully automated by the agent. Every tool or decision that may affect any external system or produce any trail outside the repository or IDE session shall **always** be confirmed with the user.
-
-## Roles and responsibilities
-TBA
